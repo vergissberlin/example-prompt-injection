@@ -2,6 +2,8 @@
 
 Kleine TypeScript-Bibliothek, die Support-Tickets nach Priorität sortiert.
 
+![Demo](demo-mock.gif)
+
 ## Entwicklung
 
 ```bash
