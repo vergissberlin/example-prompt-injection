@@ -86,4 +86,9 @@ describe("renderHtmlReport", () => {
     expect(renderHtmlReport([entry("a", 8), entry("b", 0)], NOW)).toContain("Anfälligstes Modell");
     expect(renderHtmlReport([entry("a", 4), entry("b", 4)], NOW)).not.toContain("Auffälligkeiten");
   });
+
+  it("verlinkt im Footer das Repository", () => {
+    const html = renderHtmlReport([entry("m", 3)], NOW);
+    expect(html).toMatch(/<footer>[^]*href="https:\/\/github\.com\/vergissberlin\/example-prompt-injection"[^]*<\/footer>/);
+  });
 });
