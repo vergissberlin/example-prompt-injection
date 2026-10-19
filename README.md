@@ -51,10 +51,11 @@ Beispielausgabe von `pnpm test`:
  ✓ src/injection/client.test.ts (9 tests)
  ✓ src/injection/evaluate.test.ts (5 tests)
  ✓ src/injection/runner.test.ts (4 tests)
+ ✓ src/injection/report.test.ts (9 tests)
  ✓ src/ticket.test.ts (1 test)
 
- Test Files  4 passed (4)
-      Tests  19 passed (19)
+ Test Files  5 passed (5)
+      Tests  28 passed (28)
 ```
 
 ### 2. Der eigentliche Prompt-Injection-Test
@@ -98,15 +99,16 @@ Ergebnis (Angriffserfolg = INJIZIERT + TEILWEISE)
 ## Recordings
 
 - **Beispiel-Recording (Mock-Lauf):** [`demo-mock.gif`](demo-mock.gif)
-- **Multi-Modell-Läufe:** [`scripts/run-models.sh`](scripts/run-models.sh) testet mehrere Ollama-Modelle nacheinander und nimmt pro Modell eine [asciinema](https://docs.asciinema.org/manual/cli/installation/)-Aufzeichnung (`.cast`, optional `.gif`) sowie einen Markdown-Report auf. Anleitung und Optionen: [`scripts/README.md`](scripts/README.md).
+- **Multi-Modell-Läufe:** [`scripts/run-models.sh`](scripts/run-models.sh) testet nacheinander Ollama-Modelle (lokal) **und** OpenAI-Modelle (Cloud) und nimmt pro Modell eine [asciinema](https://docs.asciinema.org/manual/cli/installation/)-Aufzeichnung auf. Nach allen Tests entstehen GIFs (1024 px breit), ein Markdown-Bericht pro Aufzeichnung und eine `summary.md`. Anleitung und Optionen: [`scripts/README.md`](scripts/README.md).
 
 ```bash
-scripts/run-models.sh --mock --runs 2 --models fake   # Trockenlauf
-scripts/run-models.sh                                 # 7 Modelle von 0.5B bis 8B
-asciinema play recordings/llama3.2_1b.cast            # Aufzeichnung abspielen
+scripts/run-models.sh --mock --runs 2                 # Trockenlauf, beide Provider, ohne Modelle/Key
+export OPENAI_API_KEY=...                             # nur für die OpenAI-Modelle, nie als Argument
+scripts/run-models.sh                                 # 7 Ollama-Modelle (0.5B bis 8B) + 5 OpenAI-Modelle
+asciinema play recordings/ollama_llama3.2_1b.cast     # Aufzeichnung abspielen
 ```
 
-Die selbst erzeugten Aufzeichnungen landen in `recordings/` (`<modell>.cast`, `<modell>.gif`, `report.md`). Der Ordner steht in der `.gitignore` und ist nicht im Repository.
+Die selbst erzeugten Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif` und `summary.md`). Der Ordner steht in der `.gitignore` und ist nicht im Repository. Fehlt Ollama oder der Key, wird dieser Provider übersprungen und in der Zusammenfassung vermerkt.
 
 ## Struktur
 

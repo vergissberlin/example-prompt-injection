@@ -1,26 +1,28 @@
 # `run-models.sh`: Multi-Modell-Lauf für die Prompt-Injection-Demo
 
-Testet mehrere lokale Ollama-Modelle nacheinander gegen die harmlose Canary-Injection
-(`INJECTION-DEMO-ERFOLGREICH`, siehe [`DEMO.md`](../DEMO.md)). Pro Modell: pullen, Test mit
-[asciinema](https://docs.asciinema.org/manual/cli/installation/) aufzeichnen, Modell sofort wieder löschen.
-Es liegt nie mehr als ein selbst geladenes Modell auf der Platte, gedacht für Rechner mit wenig Speicher.
+Testet mehrere **Ollama-Modelle (lokal) und OpenAI-Modelle (Cloud)** nacheinander gegen die harmlose Canary-Injection
+(`INJECTION-DEMO-ERFOLGREICH`, siehe [`DEMO.md`](../DEMO.md)). Jeder Test wird mit
+[asciinema](https://docs.asciinema.org/manual/cli/installation/) aufgezeichnet. Nach **allen** Tests entstehen
+GIFs (1024 px breit), ein Bericht pro Aufzeichnung und eine Gesamtzusammenfassung.
+Selbst gepullte Ollama-Modelle werden sofort wieder gelöscht: Es liegt nie mehr als eins auf der Platte.
 
 ## Voraussetzungen
 
-- [Ollama](https://ollama.com/download), läuft (`ollama serve` oder App)
 - [asciinema](https://docs.asciinema.org/manual/cli/installation/) (`brew install asciinema` / `sudo apt install asciinema`)
-- [pnpm](https://pnpm.io/installation) und einmalig `pnpm install` im Ordner `examples/prompt-injection`
+- [pnpm](https://pnpm.io/installation) und einmalig `pnpm install` im Projektordner
+- Für Ollama-Modelle: [Ollama](https://ollama.com/download), läuft (`ollama serve` oder App)
+- Für OpenAI-Modelle: `OPENAI_API_KEY` als Umgebungsvariable
+- Für GIFs (optional): [agg](https://github.com/asciinema/agg) **und** `ffmpeg` (oder ImageMagick `convert`) zum Skalieren
 
-Mit `--mock` brauchst du Ollama nicht, aber weiterhin asciinema und pnpm.
+Mit `--mock` brauchst du weder Ollama noch Key, aber weiterhin asciinema und pnpm.
 
 ## Schnellstart
 
 ```bash
-cd examples/prompt-injection
-scripts/run-models.sh --mock --runs 2 --models fake      # 1. Trockenlauf
-scripts/run-models.sh --models "qwen2.5:0.5b" --runs 2   # 2. kleiner echter Lauf
-ollama list                                              #    Modell sollte wieder weg sein
-scripts/run-models.sh                                    # 3. voller Lauf (Default-Liste)
+scripts/run-models.sh --mock --runs 2                    # 1. Trockenlauf, beide Provider, ohne Modelle/Key
+scripts/run-models.sh --provider ollama --models "qwen2.5:0.5b" --runs 2   # 2. kleiner echter Lauf
+export OPENAI_API_KEY=...                                # nur als Env, nie als Argument
+scripts/run-models.sh                                    # 3. voller Lauf: Ollama- und OpenAI-Liste
 ```
 
 Ist das Skript nicht ausführbar, starte es mit `bash scripts/run-models.sh ...`.
@@ -29,39 +31,69 @@ Ist das Skript nicht ausführbar, starte es mit `bash scripts/run-models.sh ...`
 
 | Option | Bedeutung | Default |
 |---|---|---|
-| `--provider ollama\|openai` | `openai`: Cloud-Modelle, kein pull/rm, Key aus Env `OPENAI_API_KEY` (nie als Argument, sonst in `ps` und `.cast` sichtbar) | `ollama` |
-| `--models "a:1b,b:2b"` | Komma-getrennte Ollama-Modelle (auch per Env `MODELS`) | siehe unten |
+| `--provider ollama\|openai\|all` | `all` testet erst Ollama, dann OpenAI. Bei `all` wird ein nicht verfügbarer Provider (kein Ollama, kein Key) **übersprungen** und in der Zusammenfassung vermerkt; bei `ollama`/`openai` ist das ein Fehler | `all` |
+| `--models "a:1b,b:2b"` | Ollama-Modelle, komma-getrennt (auch per Env `MODELS`) | siehe unten |
+| `--openai-models "gpt-5,..."` | OpenAI-Modelle (auch per Env `OPENAI_MODELS`) | siehe unten |
 | `--runs N` | Durchläufe pro Variante und Modell | `10` |
 | `--host URL` | Ollama-Host | `http://localhost:11434` |
-| `--no-gif` | Keine GIFs erzeugen | GIF an (wenn `agg` da ist) |
+| `--no-gif` | Keine GIFs erzeugen | GIF an (wenn `agg` und `ffmpeg`/`convert` da sind) |
+| `--gif-width PX` | Breite der GIFs in Pixeln | `1024` |
 | `--idle SEK` | Pausen im GIF auf max. SEK Sekunden kürzen | `1` |
-| `--out DIR` | Zielordner für Aufzeichnungen und Report | `recordings` |
-| `--keep` | Modelle nach dem Test **nicht** löschen | aus |
-| `--mock` | Trockenlauf mit Fake-Modell, kein pull/rm, kein Ollama nötig | aus |
+| `--out DIR` | Zielordner für Aufzeichnungen, Berichte und GIFs | `recordings` |
+| `--keep` | Ollama-Modelle nach dem Test **nicht** löschen | aus |
+| `--mock` | Trockenlauf mit Fake-Modell, kein pull/rm, weder Ollama noch Key nötig | aus |
 | `-h`, `--help` | Hilfe | |
 
-## Ablauf pro Modell
+## Ablauf
 
 ```
-installiert? ──ja──> merken: wird NICHT gelöscht
-     │ nein
-     v
-ollama pull ──Fehler──> "PULL-FEHLER", nächstes Modell
-     │
-     v
-asciinema rec  ->  pnpm injection --model <m> --runs N
-     │
-     v
-ollama stop + ollama rm   (nur wenn das Skript es selbst gepullt hat)
+Phase 1  Tests      pro Modell: [ollama pull] -> asciinema rec -> pnpm injection ... --json -> [ollama rm]
+Phase 2  GIFs       erst wenn ALLE Tests durch sind: .cast -> agg -> auf 1024 px skalieren -> .gif
+Phase 3  Berichte   pnpm report: ein .md pro Aufzeichnung + summary.md über alle Modelle
 ```
 
-Am Ende gibt es eine Zusammenfassungstabelle im Terminal und einen Markdown-Report.
+Pro Ollama-Modell: ist es schon installiert, wird es nie gelöscht. Schlägt ein Pull fehl, steht `PULL-FEHLER` in der
+Zusammenfassung und das Skript macht mit dem nächsten Modell weiter. OpenAI-Modelle werden weder gepullt noch gelöscht.
 
-## OpenAI-Default-Modelle
+## Ausgabe
 
-Mit `--provider openai`: `gpt-4.1-nano, gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5`. Es wird nichts gepullt oder gelöscht, Ollama ist nicht nötig. Die Inhalte gehen an OpenAI (nur harmlose Demo-Dateien).
+Dateinamen sind `<anbieter>_<modell>` (`:` und `/` im Modellnamen werden zu `_`), z. B. `ollama_llama3.2_1b`.
 
-## Default-Modelle (je < 8 GB)
+| Datei | Inhalt |
+|---|---|
+| `<anbieter>_<modell>.cast` | Aufzeichnung (`asciinema play <datei>`). Der Pull selbst wird nicht aufgezeichnet |
+| `<anbieter>_<modell>.json` | Strukturierte Ergebnisse des Laufs (Quelle für die Berichte, kein Key darin) |
+| `<anbieter>_<modell>.md` | **Bericht pro Aufzeichnung**: Anbieter, Zeitpunkt (Europe/Berlin), Ergebnis je Variante, Urteil, Links |
+| `<anbieter>_<modell>.gif` | GIF der Aufzeichnung, 1024 px breit |
+| `summary.md` | **Zusammenfassung nach allen Tests**: Tabelle aller Modelle mit Quote je Variante, anfälligstes/robustestes Modell, übersprungene Modelle und Fehler |
+| `manifest.tsv` | Liste der Läufe (Basisname, Anbieter, Modell, Exit-Code, Hinweis) für `pnpm report` |
+
+Der Ordner `recordings/` ist in der `.gitignore`. Exit `0` heißt nur, dass der Test durchlief; das Urteil (Angriff möglich,
+robust, ...) steht im Bericht. Das Skript endet mit Exit `1`, wenn gar kein Modell getestet wurde.
+
+Berichte lassen sich aus vorhandenen Ergebnissen jederzeit neu erzeugen:
+
+```bash
+pnpm report --dir recordings
+```
+
+### GIFs
+
+`agg` kennt keine Pixelbreite, deshalb wird das GIF nach `agg` mit `ffmpeg` (Palette + Lanczos) oder ersatzweise ImageMagick
+auf `--gif-width` skaliert. Fehlt `agg` oder ein Skalierwerkzeug, gibt es nur einen Hinweis und der Lauf geht normal weiter.
+Pausen werden über `--idle SEK` gekürzt, Tippen und Ausgabe bleiben flüssig. Von Hand für eine bestehende Aufzeichnung:
+
+```bash
+agg --idle-time-limit 1 --fps-cap 15 recordings/ollama_llama3.2_1b.cast /tmp/raw.gif
+ffmpeg -i /tmp/raw.gif -vf "scale=1024:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" recordings/ollama_llama3.2_1b.gif
+```
+
+Entstand eine Aufzeichnung ohne echtes Terminal (CI, Container), steht im Cast-Header `width`/`height` auf `0`, und `agg`
+meldet "invalid terminal size". Das Skript setzt dann automatisch `100` und `30`.
+
+## Default-Modelle
+
+**Ollama** (je < 8 GB):
 
 | Modell | Größe (ca.) |
 |---|---|
@@ -77,52 +109,33 @@ Die Größen sind Schätzwerte (quantisierte Standard-Tags) und nicht gegen die 
 [ollama.com/library](https://ollama.com/library) nachsehen. Die 7B/8B-Modelle brauchen grob 6 bis 8 GB RAM.
 Insgesamt werden etwa 17 GB geladen, weil jedes Modell neu gezogen wird.
 
-## Ausgabe
-
-- `recordings/<modell>.cast`: Aufzeichnung pro Modell (`:` und `/` im Namen werden zu `_`). Der Pull selbst wird nicht
-  aufgezeichnet.
-- `recordings/report.md`: Markdown-Report mit Zeitpunkt (Europe/Berlin), Parametern und Tabelle
-  (Modell, Ergebnis, gelöscht, Aufzeichnung). Er wird bei jedem Lauf überschrieben. Das Ergebnis `exit 0`
-  heißt nur, dass der Test durchlief; INJIZIERT/GEWARNT/... stehen in der Aufzeichnung.
-- Der Ordner `recordings/` ist in der `.gitignore`.
-
-```bash
-asciinema play recordings/llama3.2_1b.cast
-```
-
-### GIFs
-
-Pro Modell entsteht automatisch `recordings/<modell>.gif`, sofern [agg](https://github.com/asciinema/agg) installiert ist
-(sonst nur ein Hinweis, der Lauf geht normal weiter). Statt fester Frames pro Sekunde werden Pausen gekürzt:
-`--idle SEK` (Default `1`) begrenzt jede Pause ohne Ausgabe auf SEK Sekunden, Tippen und Ausgabe bleiben flüssig.
-Mit `--no-gif` wird nichts erzeugt. Nachträglich für bestehende Aufzeichnungen:
-
-```bash
-agg --idle-time-limit 1 --fps-cap 15 recordings/llama3.2_1b.cast recordings/llama3.2_1b.gif
-```
-
-Entstand eine Aufzeichnung ohne echtes Terminal (CI, Container), steht im Cast-Header `width`/`height` auf `0`, und
-`agg` meldet "invalid terminal size". Dann die beiden Werte in der ersten Zeile der `.cast`-Datei setzen, z. B. auf `100` und `30`.
+**OpenAI**: `gpt-4.1-nano, gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5`. Bei 10 Durchläufen sind das 150 Requests.
+Die Inhalte gehen an OpenAI (nur harmlose Demo-Dateien).
 
 ## Sicherheit und Aufräumen
 
 - Gelöscht wird nur, was das Skript selbst gepullt hat; vorhandene Modelle bleiben unangetastet.
 - Aufräumen läuft per `trap` auch bei Strg-C, Fehlern und geschlossenem Terminal (EXIT, INT, TERM, HUP).
-- Nur der angegebene Ollama-Host wird angesprochen, es werden keine Credentials verwendet.
+- Der OpenAI-Key kommt nur aus der Umgebung (`OPENAI_API_KEY`). Als Argument stünde er in `ps` und in der `.cast`-Datei.
+  Empfehlung: eigener Projekt-Key mit Budget-Limit. Er landet weder in `.json` noch in den Berichten.
 - Die Injection ist ein harmloser Canary-Text. Für die Demo nie echte Kundendaten oder produktive Konten nutzen.
 
 ## Troubleshooting
 
 | Problem | Lösung |
 |---|---|
-| "Ollama nicht erreichbar" | `ollama serve` starten oder `--host` setzen; zum Testen `--mock` |
+| "Übersprungen: ollama nicht installiert / nicht erreichbar" | `ollama serve` starten oder `--host` setzen; zum Testen `--mock` |
+| "Übersprungen: OPENAI_API_KEY ist nicht gesetzt" | `export OPENAI_API_KEY=...` oder `--provider ollama` |
 | `PULL-FEHLER` in der Tabelle | Modellname/Tag prüfen (`ollama.com/library`); das Skript macht mit dem nächsten Modell weiter |
 | Zu wenig Platz | Vor jedem Pull steht der freie Speicher; kleinere Modelle über `--models` wählen |
 | Warnung "konnte nicht gelöscht werden" | Manuell `ollama rm <modell>` |
+| Keine GIFs | `agg` und `ffmpeg` (oder `convert`) installieren |
 | Fehlt `asciinema` oder `pnpm` | Siehe Voraussetzungen |
 
 ## Trade-offs
 
 - **Platz gegen Zeit:** Jeder Lauf lädt das Modell neu, das spart Platte und kostet Bandbreite.
 - **Sequenziell statt parallel:** Dauert länger, hält aber den Speicherbedarf bei einem Modell.
-- **Ein `.cast` pro Modell:** einzeln abspielbar und teilbar, dafür mehrere Dateien.
+- **GIFs erst am Ende:** Bei einem Abbruch mitten im Lauf entstehen keine GIFs, die `.cast`-Dateien bleiben und lassen sich nachträglich umwandeln.
+- **Ein `.cast` und ein Bericht pro Modell:** einzeln abspielbar und teilbar, dafür mehrere Dateien; die Gesamtsicht liefert `summary.md`.
+- **Cloud kostet:** OpenAI-Läufe verursachen Kosten und senden Inhalte an einen Dritten; deshalb nur Demo-Dateien und ein Key mit Budget-Limit.
