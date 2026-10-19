@@ -3,7 +3,7 @@
 #
 # Phase 1 (Tests):    pro Modell pullen (nur Ollama) -> Test unter asciinema aufzeichnen -> Modell wieder löschen.
 # Phase 2 (GIFs):     erst nach ALLEN Tests: .cast -> GIF in fester Terminalgröße und Breite (Default 1920 px).
-# Phase 3 (Berichte): ein Markdown-Bericht pro Aufzeichnung plus summary.md über alle Modelle.
+# Phase 3 (Berichte): ein Markdown-Bericht pro Aufzeichnung, summary.md und ein HTML-Bericht (report.html) über alle Modelle.
 # Läuft strikt sequenziell, damit nie mehr als ein (selbst geladenes) Modell auf der Platte liegt.
 # Bereits vorher installierte Modelle werden nie gelöscht.
 set -euo pipefail
@@ -90,7 +90,7 @@ mkdir -p "$OUT"
 shopt -s nullglob
 for old in "$OUT"/*.cast; do rm -f "$old" "${old%.cast}".{json,md,gif}; done
 shopt -u nullglob
-rm -f "$OUT/manifest.tsv" "$OUT/summary.md" "$OUT/report.md" # report.md: Altlast der Vorgängerversion
+rm -f "$OUT/manifest.tsv" "$OUT/summary.md" "$OUT/report.md" "$OUT/report.html" # report.md: Altlast der Vorgängerversion
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Fehlt: $1 ($2)" >&2; exit 1; }; }
 need asciinema "Installation: https://docs.asciinema.org/manual/cli/installation/"
@@ -297,6 +297,7 @@ done
 echo
 if pnpm --silent report --dir "$OUT"; then
   echo "Zusammenfassung: $OUT/summary.md"
+  echo "HTML-Bericht:    $OUT/report.html"
   echo "Berichte:        $OUT/<anbieter>_<modell>.md"
 else
   echo "WARNUNG: Berichte konnten nicht erzeugt werden (manuell: pnpm report --dir $OUT)." >&2
