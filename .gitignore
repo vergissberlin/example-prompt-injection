@@ -17,9 +17,6 @@ coverage/
 *.log
 pnpm-debug.log*
 
-# Generated recordings
-recordings/
-
 # Netlify
 .netlify/
 

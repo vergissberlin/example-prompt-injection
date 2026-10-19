@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    # Recordings-Commits des Injection-Workflows brauchen keine CI
+    paths-ignore:
+      - "recordings/**"
+
+# Least Privilege: CI liest nur
+permissions:
+  contents: read
+
+# Neuer Push auf denselben Ref bricht den laufenden Lauf ab
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lockfile ist v9, kein packageManager-Feld im package.json -> Version explizit setzen
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test

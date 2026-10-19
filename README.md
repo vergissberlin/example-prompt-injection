@@ -106,7 +106,12 @@ scripts/run-models.sh                                 # 7 Modelle von 0.5B bis 8
 asciinema play recordings/llama3.2_1b.cast            # Aufzeichnung abspielen
 ```
 
-Die selbst erzeugten Aufzeichnungen landen in `recordings/` (`<modell>.cast`, `<modell>.gif`, `report.md`). Der Ordner steht in der `.gitignore` und ist nicht im Repository.
+Die Aufzeichnungen landen in `recordings/` (`<modell>.cast`, `<modell>.gif`, `report.md`) und sind im Repository eingecheckt. Jeder Lauf überschreibt den vorigen Stand.
+
+### GitHub Actions
+
+- **CI** ([`ci.yml`](.github/workflows/ci.yml)): `pnpm lint`, `pnpm typecheck` und `pnpm test` laufen bei jedem Pull Request und bei Pushes auf `main`.
+- **Injection-Test** ([`injection.yml`](.github/workflows/injection.yml)): nur manuell (Actions > Injection-Test > Run workflow). Provider (`ollama` oder `openai`), Modelle und Durchläufe sind Eingaben. Die Recordings werden danach nach `main` committet. Details in [`scripts/README.md`](scripts/README.md#in-github-actions).
 
 ## Struktur
 
