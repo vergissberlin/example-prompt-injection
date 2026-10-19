@@ -108,7 +108,7 @@ scripts/run-models.sh                                 # 7 Ollama-Modelle (0.5B b
 asciinema play recordings/ollama_llama3.2_1b.cast     # Aufzeichnung abspielen
 ```
 
-Die selbst erzeugten Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif` und `summary.md`). Der Ordner steht in der `.gitignore` und ist nicht im Repository. Fehlt Ollama oder der Key, wird dieser Provider übersprungen und in der Zusammenfassung vermerkt.
+Die selbst erzeugten Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif` und `summary.md`). Der Ordner steht in der `.gitignore` und ist nicht im Repository. Jeder Lauf überschreibt die Ergebnisse des vorherigen. Fehlt Ollama oder der Key, wird dieser Provider übersprungen und in der Zusammenfassung vermerkt.
 
 ## Struktur
 

@@ -68,6 +68,8 @@ Dateinamen sind `<anbieter>_<modell>` (`:` und `/` im Modellnamen werden zu `_`)
 | `summary.md` | **Zusammenfassung nach allen Tests**: Tabelle aller Modelle mit Quote je Variante, anfälligstes/robustestes Modell, übersprungene Modelle und Fehler |
 | `manifest.tsv` | Liste der Läufe (Basisname, Anbieter, Modell, Exit-Code, Hinweis) für `pnpm report` |
 
+Jeder Lauf **überschreibt** die Ergebnisse des vorherigen: Zu Beginn werden alle `.cast`-Dateien im Zielordner samt zugehörigem `.json`/`.md`/`.gif` sowie `manifest.tsv` und `summary.md` gelöscht. Andere Dateien im Ordner bleiben unberührt. Willst du Ergebnisse behalten, kopiere den Ordner vorher weg oder nutze ein anderes `--out`.
+
 Der Ordner `recordings/` ist in der `.gitignore`. Exit `0` heißt nur, dass der Test durchlief; das Urteil (Angriff möglich,
 robust, ...) steht im Bericht. Das Skript endet mit Exit `1`, wenn gar kein Modell getestet wurde.
 
