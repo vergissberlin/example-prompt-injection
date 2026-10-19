@@ -158,8 +158,11 @@ jobs:
           git commit -m "chore(recordings): update recordings (provider: ${{ inputs.provider }})"
           # main kann sich während des Laufs bewegt haben: rebasen und bei Race erneut versuchen
           for attempt in 1 2 3; do
-            git pull --rebase origin main
-            git push origin HEAD:main && exit 0
+            # Recordings sind generiert: bei Konflikten gewinnt der eigene (neue) Stand (-X theirs = replayter Commit)
+            if git pull --rebase -X theirs origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
             echo "Push fehlgeschlagen (Versuch $attempt), neuer Versuch ..."
             sleep $((attempt * 3))
           done
