@@ -154,7 +154,7 @@ jobs:
           mv _site/report.html _site/index.html
           touch _site/.nojekyll
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         if: ${{ !inputs.mock }}
         with:
           path: _site
@@ -197,4 +197,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
