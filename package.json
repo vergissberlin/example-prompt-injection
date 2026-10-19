@@ -2,7 +2,7 @@
   "name": "prompt-injection-demo",
   "version": "0.1.0",
   "private": true,
-  "description": "Harmlose Demo für AI Café #008: indirekte Prompt Injection in Projektdateien",
+  "description": "Harmlose Demo: indirekte Prompt Injection in Projektdateien",
   "type": "module",
   "scripts": {
     "test": "vitest run",

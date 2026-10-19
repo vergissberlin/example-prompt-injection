@@ -1,4 +1,4 @@
-# Vorführ-Anleitung: Prompt Injection (AI Café #008)
+# Vorführ-Anleitung: Prompt Injection
 
 Nur für die Live-Demo. Die "Injection" in `CONTRIBUTING.md` ist ein harmloser Canary: Sie bittet den Agent lediglich, seine Antwort mit einem Marker-Satz zu beginnen. Es werden keine Daten gelesen, gesendet oder verändert.
 
