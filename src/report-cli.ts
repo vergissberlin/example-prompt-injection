@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { renderHtmlReport } from "./injection/report-html";
 import { parseManifest, renderModelReport, renderSummary, type ReportEntry, type RunData } from "./injection/report";
 
 /** Liest `<base>.json`; fehlt die Datei oder ist sie kaputt, gibt es schlicht kein Ergebnis. */
@@ -33,8 +34,10 @@ async function main() {
   }
 
   for (const e of entries) await writeFile(join(dir, `${e.base}.md`), renderModelReport(e));
-  await writeFile(join(dir, "summary.md"), renderSummary(entries, new Date().toISOString()));
-  console.log(`${entries.length} Berichte und summary.md in ${dir}`);
+  const generatedAt = new Date().toISOString();
+  await writeFile(join(dir, "summary.md"), renderSummary(entries, generatedAt));
+  await writeFile(join(dir, "report.html"), renderHtmlReport(entries, generatedAt));
+  console.log(`${entries.length} Berichte, summary.md und report.html in ${dir}`);
 }
 
 main().catch((e) => {

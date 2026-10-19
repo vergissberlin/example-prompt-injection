@@ -43,7 +43,7 @@ const VERDICT_TEXT: Record<VerdictKind, string> = {
 
 export const verdictText = (summaries: VariantSummary[]): string => VERDICT_TEXT[verdictKind(summaries)];
 
-const pct = (rate: number) => `${Math.round(rate * 100)} %`;
+export const pct = (rate: number) => `${Math.round(rate * 100)} %`;
 
 export function formatBerlin(iso: string): string {
   const d = new Date(iso);
@@ -56,7 +56,7 @@ export function formatBerlin(iso: string): string {
   return `${parts} (Europe/Berlin)`;
 }
 
-const providerLabel = (e: { provider: string; data?: RunData }) =>
+export const providerLabel = (e: { provider: string; data?: RunData }) =>
   e.data?.mock ? "Mock" : e.provider === "openai" ? "OpenAI (Cloud)" : "Ollama (lokal)";
 
 /** Tabelle mit einer Zeile pro Variante. */

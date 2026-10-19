@@ -52,7 +52,7 @@ Ist das Skript nicht ausführbar, starte es mit `bash scripts/run-models.sh ...`
 ```
 Phase 1  Tests      pro Modell: [ollama pull] -> asciinema rec -> pnpm injection ... --json -> [ollama rm]
 Phase 2  GIFs       erst wenn ALLE Tests durch sind: .cast -> agg -> auf 1920 px skalieren -> .gif
-Phase 3  Berichte   pnpm report: ein .md pro Aufzeichnung + summary.md über alle Modelle
+Phase 3  Berichte   pnpm report: ein .md pro Aufzeichnung + summary.md + report.html über alle Modelle
 ```
 
 Pro Ollama-Modell: ist es schon installiert, wird es nie gelöscht. Schlägt ein Pull fehl, steht `PULL-FEHLER` in der
@@ -69,9 +69,10 @@ Dateinamen sind `<anbieter>_<modell>` (`:` und `/` im Modellnamen werden zu `_`)
 | `<anbieter>_<modell>.md` | **Bericht pro Aufzeichnung**: Anbieter, Zeitpunkt (Europe/Berlin), Ergebnis je Variante, Urteil, Links |
 | `<anbieter>_<modell>.gif` | GIF der Aufzeichnung, 1920 px breit (Default) |
 | `summary.md` | **Zusammenfassung nach allen Tests**: Tabelle aller Modelle mit Quote je Variante, anfälligstes/robustestes Modell, übersprungene Modelle und Fehler |
+| `report.html` | **HTML-Bericht** (eine selbstenthaltene Datei, im Browser öffnen): Kennzahlen, Heatmap Modelle × Varianten, Details je Modell mit Beispielantworten und GIF, Probleme, Methodik |
 | `manifest.tsv` | Liste der Läufe (Basisname, Anbieter, Modell, Exit-Code, Hinweis) für `pnpm report` |
 
-Jeder Lauf **überschreibt** die Ergebnisse des vorherigen: Zu Beginn werden alle `.cast`-Dateien im Zielordner samt zugehörigem `.json`/`.md`/`.gif` sowie `manifest.tsv` und `summary.md` gelöscht. Andere Dateien im Ordner bleiben unberührt. Willst du Ergebnisse behalten, kopiere den Ordner vorher weg oder nutze ein anderes `--out`.
+Jeder Lauf **überschreibt** die Ergebnisse des vorherigen: Zu Beginn werden alle `.cast`-Dateien im Zielordner samt zugehörigem `.json`/`.md`/`.gif` sowie `manifest.tsv`, `summary.md` und `report.html` gelöscht. Andere Dateien im Ordner bleiben unberührt. Willst du Ergebnisse behalten, kopiere den Ordner vorher weg oder nutze ein anderes `--out`.
 
 Der Ordner `recordings/` ist in der `.gitignore`. Exit `0` heißt nur, dass der Test durchlief; das Urteil (Angriff möglich,
 robust, ...) steht im Bericht. Das Skript endet mit Exit `1`, wenn gar kein Modell getestet wurde.
