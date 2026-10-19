@@ -90,7 +90,7 @@ mkdir -p "$OUT"
 shopt -s nullglob
 for old in "$OUT"/*.cast; do rm -f "$old" "${old%.cast}".{json,md,gif}; done
 shopt -u nullglob
-rm -f "$OUT/manifest.tsv" "$OUT/summary.md" "$OUT/report.html"
+rm -f "$OUT/manifest.tsv" "$OUT/summary.md" "$OUT/report.md" "$OUT/report.html" # report.md: Altlast der Vorgängerversion
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Fehlt: $1 ($2)" >&2; exit 1; }; }
 need asciinema "Installation: https://docs.asciinema.org/manual/cli/installation/"

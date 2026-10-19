@@ -74,7 +74,7 @@ Dateinamen sind `<anbieter>_<modell>` (`:` und `/` im Modellnamen werden zu `_`)
 
 Jeder Lauf **überschreibt** die Ergebnisse des vorherigen: Zu Beginn werden alle `.cast`-Dateien im Zielordner samt zugehörigem `.json`/`.md`/`.gif` sowie `manifest.tsv`, `summary.md` und `report.html` gelöscht. Andere Dateien im Ordner bleiben unberührt. Willst du Ergebnisse behalten, kopiere den Ordner vorher weg oder nutze ein anderes `--out`.
 
-Der Ordner `recordings/` ist in der `.gitignore`. Exit `0` heißt nur, dass der Test durchlief; das Urteil (Angriff möglich,
+Der Ordner `recordings/` ist eingecheckt (nicht in der `.gitignore`), damit der GitHub-Workflow die Ergebnisse committen kann. Exit `0` heißt nur, dass der Test durchlief; das Urteil (Angriff möglich,
 robust, ...) steht im Bericht. Das Skript endet mit Exit `1`, wenn gar kein Modell getestet wurde.
 
 Berichte lassen sich aus vorhandenen Ergebnissen jederzeit neu erzeugen:
@@ -119,6 +119,24 @@ Insgesamt werden etwa 17 GB geladen, weil jedes Modell neu gezogen wird.
 
 **OpenAI**: `gpt-4.1-nano, gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5`. Bei 10 Durchläufen sind das 150 Requests.
 Die Inhalte gehen an OpenAI (nur harmlose Demo-Dateien).
+
+## In GitHub Actions
+
+Der Workflow [`injection.yml`](../.github/workflows/injection.yml) startet das Skript manuell (Actions > Injection-Test > Run workflow, nur von `main` aus) und committet `recordings/` danach nach `main`.
+
+| Eingabe | Bedeutung | Default |
+|---|---|---|
+| `provider` | `ollama`, `openai` oder `all` | `ollama` |
+| `models` | Ollama-Modelle, komma-getrennt (leer = Skript-Default) | `qwen2.5:0.5b,llama3.2:1b,gemma2:2b` |
+| `openai_models` | OpenAI-Modelle, komma-getrennt (leer = Skript-Default) | leer |
+| `runs` | Durchläufe pro Variante und Modell | `5` |
+| `mock` | Trockenlauf mit Fake-Modell, wird **nicht** gepusht | aus |
+
+- **OpenAI:** braucht das Repo-Secret `OPENAI_API_KEY` (Settings > Secrets and variables > Actions). Es wird nur als Env an den Test-Step gereicht. Die Demo-Inhalte gehen an OpenAI, und es entstehen Kosten. Am besten einen eigenen Key mit Ausgabenlimit nutzen. Bei `provider=all` ohne Secret wird OpenAI übersprungen.
+- **Runner:** Standard-Runner haben keine GPU. In öffentlichen Repos sind es 4 vCPU, 16 GB RAM und 14 GB Platte (laut GitHub-Doku), in privaten weniger. Deshalb nur kleine Ollama-Modelle als Default; 7B/8B laufen auf CPU sehr langsam.
+- **Terminal:** Der Runner hat kein TTY, der Workflow startet das Skript deshalb in einem Pseudo-Terminal (`script`) mit 120x30 Zeichen.
+- **Push:** Der Commit geht direkt nach `main`. Verbietet eine Branch Protection Bot-Pushes, schlägt der Schritt fehl. Die Recordings liegen dann als Artifact `recordings` am Lauf.
+- **Versionen:** `ollama` und `agg` sind im Workflow fest gepinnt (`agg` mit SHA256), Renovate pflegt nur die Actions.
 
 ## Sicherheit und Aufräumen
 
