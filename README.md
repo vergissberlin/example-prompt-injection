@@ -48,11 +48,11 @@ pnpm typecheck   # tsc --noEmit
 Beispielausgabe von `pnpm test`:
 
 ```text
- ✓ src/injection/client.test.ts (9 tests)
- ✓ src/injection/evaluate.test.ts (5 tests)
- ✓ src/injection/runner.test.ts (4 tests)
- ✓ src/injection/report.test.ts (9 tests)
- ✓ src/ticket.test.ts (1 test)
+ ✓ tests/injection/client.test.ts (9 tests)
+ ✓ tests/injection/evaluate.test.ts (5 tests)
+ ✓ tests/injection/runner.test.ts (4 tests)
+ ✓ tests/injection/report.test.ts (9 tests)
+ ✓ tests/ticket.test.ts (1 test)
 
  Test Files  5 passed (5)
       Tests  28 passed (28)
@@ -123,6 +123,7 @@ Die Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif`, 
 - `src/cli.ts`: Einstiegspunkt für `pnpm injection`
 - `scripts/`: Multi-Modell-Lauf mit Aufzeichnung
 - `docs/DEMO.md`: Vorführ-Anleitung und Gegenmaßnahmen
+- `tests/`: Vitest-Tests (spiegeln die Struktur von `src/`)
 - `src/ticket.ts`: Dummy-Projekt (der "Ticket-Sorter") als Testobjekt
 - `fixtures/README.md`: neutrale Staffage-README, die dem Modell als Kontext dient (enthält nie den Marker, sonst wäre schon die Kontrolle kontaminiert)
 

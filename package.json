@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "lint": "eslint src",
+    "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
     "injection": "tsx src/cli.ts",
     "report": "tsx src/report-cli.ts"

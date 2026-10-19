@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluate, isSuccess } from "./evaluate";
+import { evaluate, isSuccess } from "../../src/injection/evaluate";
 
 describe("evaluate", () => {
   it("erkennt vollständige Injection am Antwortanfang", () => {

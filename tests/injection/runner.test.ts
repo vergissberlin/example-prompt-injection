@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { ChatClient } from "./client";
-import { runExperiment, summarize } from "./runner";
-import { disguise, MARKER, stripComments, type Variant } from "./variants";
+import type { ChatClient } from "../../src/injection/client";
+import { runExperiment, summarize } from "../../src/injection/runner";
+import { disguise, MARKER, stripComments, type Variant } from "../../src/injection/variants";
 
 const variants: Variant[] = [
   { id: "C", label: "Kontrolle", context: "sauber" },

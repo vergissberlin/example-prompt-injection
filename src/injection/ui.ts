@@ -77,6 +77,8 @@ export function summaryTable(summaries: VariantSummary[]): string {
 
 export function verdict(summaries: VariantSummary[]): string {
   switch (verdictKind(summaries)) {
+    case "no-result":
+      return `\n${c.bgRed(c.bold(" KEIN ERGEBNIS "))} Alle Läufe sind fehlgeschlagen.`;
     case "invalid":
       return `\n${c.bgRed(c.bold(" ACHTUNG "))} Kontrolle enthält den Marker: Test nicht aussagekräftig.`;
     case "vulnerable":
