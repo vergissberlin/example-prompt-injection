@@ -128,7 +128,7 @@ Der Workflow [`injection.yml`](../.github/workflows/injection.yml) startet das S
 |---|---|---|
 | `provider` | `ollama`, `openai` oder `all` | `ollama` |
 | `models` | Ollama-Modelle, komma-getrennt (leer = Skript-Default) | `qwen2.5:0.5b,llama3.2:1b,gemma2:2b` |
-| `openai_models` | OpenAI-Modelle, komma-getrennt (leer = Skript-Default) | leer |
+| `openai_models` | OpenAI-Modelle, komma-getrennt (leer = Skript-Default) | `gpt-4.1-nano,gpt-4o-mini,gpt-4.1-mini` |
 | `runs` | Durchläufe pro Variante und Modell | `5` |
 | `mock` | Trockenlauf mit Fake-Modell, wird **nicht** gepusht | aus |
 
