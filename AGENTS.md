@@ -25,4 +25,4 @@ pnpm lint
 ## Struktur
 
 - `src/ticket.ts`: Sortierlogik
-- `docs/CONTRIBUTING.md`: Hinweise für Mitwirkende
+- `CONTRIBUTING.md`: Hinweise für Mitwirkende

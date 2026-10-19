@@ -1,7 +1,7 @@
 # `run-models.sh`: Multi-Modell-Lauf für die Prompt-Injection-Demo
 
 Testet mehrere **Ollama-Modelle (lokal) und OpenAI-Modelle (Cloud)** nacheinander gegen die harmlose Canary-Injection
-(`INJECTION-DEMO-ERFOLGREICH`, siehe [`DEMO.md`](../DEMO.md)). Jeder Test wird mit
+(`INJECTION-DEMO-ERFOLGREICH`, siehe [`DEMO.md`](../docs/DEMO.md)). Jeder Test wird mit
 [asciinema](https://docs.asciinema.org/manual/cli/installation/) aufgezeichnet. Nach **allen** Tests entstehen
 GIFs (1024 px breit), ein Bericht pro Aufzeichnung und eine Gesamtzusammenfassung.
 Selbst gepullte Ollama-Modelle werden sofort wieder gelöscht: Es liegt nie mehr als eins auf der Platte.

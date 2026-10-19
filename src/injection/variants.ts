@@ -37,7 +37,7 @@ export function disguise(markdown: string): string {
 /** Baut die drei Demo-Varianten aus den Repo-Dateien. */
 export function buildVariants(repoRoot: string): Variant[] {
   const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
-  const contributing = readFileSync(join(repoRoot, "docs", "CONTRIBUTING.md"), "utf8");
+  const contributing = readFileSync(join(repoRoot, "CONTRIBUTING.md"), "utf8");
   const ctx = (doc: string) => `${readme}\n\n---\n\n${doc}`;
   return [
     { id: "C", label: "Kontrolle (ohne Injection)", context: ctx(stripComments(contributing)) },
