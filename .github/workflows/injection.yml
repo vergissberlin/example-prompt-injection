@@ -1,0 +1,167 @@
+name: Injection-Test
+
+# Nur manuell: Der Lauf ist langsam (CPU-only), nicht deterministisch und kein Merge-Gate.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Modell-Provider"
+        type: choice
+        options: [ollama, openai, all]
+        default: ollama
+      models:
+        description: "Ollama-Modelle, komma-getrennt (leer = Script-Default). Auf dem CPU-Runner nur kleine Modelle."
+        type: string
+        default: "qwen2.5:0.5b,llama3.2:1b,gemma2:2b"
+      openai_models:
+        description: "OpenAI-Modelle, komma-getrennt (leer = Script-Default)"
+        type: string
+        default: ""
+      runs:
+        description: "Durchläufe pro Variante und Modell"
+        type: string
+        default: "5"
+      mock:
+        description: "Trockenlauf mit Fake-Modell (kein Ollama/OpenAI nötig, wird NICHT ins Repo gepusht)"
+        type: boolean
+        default: false
+
+# Schreibrechte nur hier, weil die Recordings nach main committet werden
+permissions:
+  contents: write
+
+# Nie zwei Läufe parallel (gleiche Zieldateien, gleicher Push), laufende nicht abbrechen
+concurrency:
+  group: injection
+  cancel-in-progress: false
+
+env:
+  OLLAMA_VERSION: "0.40.6"
+  AGG_VERSION: "v1.9.0"
+  AGG_SHA256: "f111e315cd71056b116302342553dd765b7297579ed511f111d0cedb442aeda6"
+
+jobs:
+  injection:
+    # Pusht nach main, deshalb nur von main aus startbar
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Eingaben prüfen
+        env:
+          PROVIDER: ${{ inputs.provider }}
+          MODELS: ${{ inputs.models }}
+          OPENAI_MODELS: ${{ inputs.openai_models }}
+          RUNS: ${{ inputs.runs }}
+          MOCK: ${{ inputs.mock }}
+          HAS_OPENAI_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          [[ "$RUNS" =~ ^[1-9][0-9]*$ ]] || { echo "::error::runs muss eine positive Zahl sein."; exit 1; }
+          # Nur harmlose Zeichen zulassen, die Werte landen in einer Shell-Kommandozeile
+          for v in "$MODELS" "$OPENAI_MODELS"; do
+            [[ -z "$v" || "$v" =~ ^[A-Za-z0-9._:/,-]+$ ]] \
+              || { echo "::error::Modellliste enthält unerlaubte Zeichen."; exit 1; }
+          done
+          # Bei provider=all überspringt das Script OpenAI ohne Key, nur provider=openai braucht ihn zwingend
+          if [[ "$PROVIDER" == "openai" && "$MOCK" != "true" && "$HAS_OPENAI_KEY" != "true" ]]; then
+            echo "::error::Secret OPENAI_API_KEY fehlt (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # asciinema reicht den Exit-Code des aufgezeichneten Kommandos nicht durch: ein kaputter Lauf
+      # würde als "exit 0" im Report stehen und als Recording committet. Daher vorab laut scheitern.
+      - name: Preflight (CLI mit Mock prüfen)
+        run: pnpm injection --mock --runs 1 > /dev/null
+
+      # ffmpeg skaliert die GIFs auf 1920 px (das Script nutzt sonst ImageMagick als Ersatz)
+      - name: asciinema und ffmpeg installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y asciinema ffmpeg
+
+      # GIFs sind optional (das Script überspringt sie ohne agg), aber für die Demo nett.
+      - name: agg installieren (fest gepinnt, Checksumme geprüft)
+        run: |
+          curl -fsSL -o agg "https://github.com/asciinema/agg/releases/download/${AGG_VERSION}/agg-x86_64-unknown-linux-gnu"
+          echo "${AGG_SHA256}  agg" | sha256sum --check -
+          sudo install -m 0755 agg /usr/local/bin/agg
+          rm agg
+
+      - name: Ollama installieren und starten
+        if: inputs.provider != 'openai' && !inputs.mock
+        run: |
+          curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION="$OLLAMA_VERSION" sh
+          # Der Installer startet unter systemd evtl. schon einen Dienst, sonst selbst starten
+          if ! curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
+            nohup ollama serve > ollama.log 2>&1 &
+          fi
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          echo "::error::Ollama ist nach 60 s nicht erreichbar."
+          cat ollama.log || true
+          exit 1
+
+      - name: Injection-Test aufzeichnen
+        env:
+          PROVIDER: ${{ inputs.provider }}
+          MODELS: ${{ inputs.models }}
+          OPENAI_MODELS: ${{ inputs.openai_models }}
+          RUNS: ${{ inputs.runs }}
+          MOCK: ${{ inputs.mock }}
+          # Key nur als Env an genau diesen Step, nie als Argument (sonst in ps und .cast sichtbar)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TERM: xterm-256color
+        run: |
+          args=(--provider "$PROVIDER" --runs "$RUNS")
+          [[ -n "$MODELS" ]] && args+=(--models "$MODELS")
+          [[ -n "$OPENAI_MODELS" ]] && args+=(--openai-models "$OPENAI_MODELS")
+          [[ "$MOCK" == "true" ]] && args+=(--mock)
+          # asciinema braucht ein Terminal: auf dem Runner gibt es kein TTY, daher Pseudo-TTY via script.
+          # -e reicht den Exit-Code durch, stty setzt 120x30 passend zu den GIF-Defaults des Scripts.
+          cmd="stty cols 120 rows 30; scripts/run-models.sh $(printf '%q ' "${args[@]}")"
+          script -qefc "$cmd" /dev/null
+
+      # Sicherheitsnetz, falls der Push unten scheitert (z. B. Branch Protection)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recordings
+          path: recordings/
+          if-no-files-found: warn
+
+      # Trockenläufe würden die echten Recordings überschreiben, daher nie pushen
+      - name: Recordings nach main pushen
+        if: ${{ !inputs.mock }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A recordings
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen an recordings/, nichts zu committen."
+            exit 0
+          fi
+          git commit -m "chore(recordings): update recordings (provider: ${{ inputs.provider }})"
+          # main kann sich während des Laufs bewegt haben: rebasen und bei Race erneut versuchen
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            git push origin HEAD:main && exit 0
+            echo "Push fehlgeschlagen (Versuch $attempt), neuer Versuch ..."
+            sleep $((attempt * 3))
+          done
+          echo "::error::Push nach main fehlgeschlagen. Recordings liegen als Artifact vor."
+          exit 1

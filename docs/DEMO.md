@@ -67,7 +67,7 @@ scripts/run-models.sh --provider openai --runs 5        # OpenAI-Modelle, kein p
 asciinema play recordings/llama3.2_1b.cast              # Aufzeichnung abspielen
 ```
 
-- Eine `.cast`-Datei pro Modell plus `recordings/report.md` in `recordings/` (nicht im Git). Der Pull selbst wird nicht aufgezeichnet.
+- Eine `.cast`-Datei pro Modell plus `recordings/report.md` in `recordings/` (im Git eingecheckt, jeder Lauf überschreibt den Stand). Der Pull selbst wird nicht aufgezeichnet.
 - Alle Optionen, Ablauf und Troubleshooting: [`scripts/README.md`](scripts/README.md).
 - Bereits installierte Modelle werden **nie** gelöscht, nur die, die das Skript selbst gepullt hat.
 - Aufräumen läuft auch bei Strg-C, Fehlern oder geschlossenem Terminal (`trap`). `--keep` verhindert das Löschen.

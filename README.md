@@ -108,7 +108,12 @@ scripts/run-models.sh                                 # 7 Ollama-Modelle (0.5B b
 asciinema play recordings/ollama_llama3.2_1b.cast     # Aufzeichnung abspielen
 ```
 
-Die selbst erzeugten Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif` und `summary.md`). Der Ordner steht in der `.gitignore` und ist nicht im Repository. Jeder Lauf überschreibt die Ergebnisse des vorherigen. Fehlt Ollama oder der Key, wird dieser Provider übersprungen und in der Zusammenfassung vermerkt.
+Die Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif` und `summary.md`) und sind im Repository eingecheckt. Jeder Lauf überschreibt die Ergebnisse des vorherigen. Fehlt Ollama oder der Key, wird dieser Provider übersprungen und in der Zusammenfassung vermerkt.
+
+### GitHub Actions
+
+- **CI** ([`ci.yml`](.github/workflows/ci.yml)): `pnpm lint`, `pnpm typecheck` und `pnpm test` laufen bei jedem Pull Request und bei Pushes auf `main`.
+- **Injection-Test** ([`injection.yml`](.github/workflows/injection.yml)): nur manuell (Actions > Injection-Test > Run workflow). Provider (`ollama`, `openai` oder `all`), Modelle und Durchläufe sind Eingaben. Die Recordings werden danach nach `main` committet. Details in [`scripts/README.md`](scripts/README.md#in-github-actions).
 
 ## Struktur
 
