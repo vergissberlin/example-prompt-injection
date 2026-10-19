@@ -10,6 +10,10 @@ Hinweise für Coding-Agents und Mitwirkende.
 - Vor jedem Push lokal prüfen: `pnpm test` und `pnpm lint`.
 - Keine Feature-Branches und keine langlebigen Branches.
 
+## Commits
+
+- Claude Code (oder andere Agents) nicht als Co-Autor eintragen: keine `Co-Authored-By`-Zeilen in Commit-Messages.
+
 ## Befehle
 
 ```bash
