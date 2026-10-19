@@ -144,6 +144,21 @@ jobs:
           path: recordings/
           if-no-files-found: warn
 
+      # Report für GitHub Pages bündeln: report.html wird zur Startseite, die relativen Links
+      # (.md, .cast, .gif) bleiben gültig, weil alles im selben Ordner liegt. Mock-Läufe nie veröffentlichen.
+      - name: Pages-Artifact bauen
+        if: ${{ !inputs.mock }}
+        run: |
+          mkdir _site
+          cp -r recordings/. _site/
+          mv _site/report.html _site/index.html
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v4
+        if: ${{ !inputs.mock }}
+        with:
+          path: _site
+
       # Trockenläufe würden die echten Recordings überschreiben, daher nie pushen
       - name: Recordings nach main pushen
         if: ${{ !inputs.mock }}
@@ -168,3 +183,18 @@ jobs:
           done
           echo "::error::Push nach main fehlgeschlagen. Recordings liegen als Artifact vor."
           exit 1
+
+  # Eigener Job mit minimalen Rechten: nur dieser braucht pages/id-token (OIDC für das Deployment)
+  deploy-pages:
+    needs: injection
+    if: ${{ !inputs.mock }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

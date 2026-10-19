@@ -111,6 +111,10 @@ open recordings/report.html                           # HTML-Bericht (Linux: xdg
 
 Die Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|.json|.md|.gif`, `summary.md` und `report.html`) und sind im Repository eingecheckt. Jeder Lauf überschreibt die Ergebnisse des vorherigen. Fehlt Ollama oder der Key, wird dieser Provider übersprungen und in der Zusammenfassung vermerkt.
 
+### Report auf GitHub Pages
+
+Nach jedem echten Injection-Test (kein Mock-Lauf) veröffentlicht der Workflow den HTML-Report als GitHub Pages: `https://vergissberlin.github.io/example-prompt-injection/`. Einmalig nötig: Settings > Pages > Source auf **GitHub Actions** stellen.
+
 ### GitHub Actions
 
 - **CI** ([`ci.yml`](.github/workflows/ci.yml)): `pnpm lint`, `pnpm typecheck` und `pnpm test` laufen bei jedem Pull Request und bei Pushes auf `main`.
