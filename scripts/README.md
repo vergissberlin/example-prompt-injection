@@ -117,7 +117,7 @@ Die Größen sind Schätzwerte (quantisierte Standard-Tags) und nicht gegen die 
 [ollama.com/library](https://ollama.com/library) nachsehen. Die 7B/8B-Modelle brauchen grob 6 bis 8 GB RAM.
 Insgesamt werden etwa 17 GB geladen, weil jedes Modell neu gezogen wird.
 
-**OpenAI**: `gpt-4.1-nano, gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5`. Bei 10 Durchläufen sind das 150 Requests.
+**OpenAI**: `gpt-4.1-nano, gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5, gpt-5.4, gpt-5.4-mini, gpt-5.5`. Bei 10 Durchläufen sind das 240 Requests.
 Die Inhalte gehen an OpenAI (nur harmlose Demo-Dateien).
 
 ## In GitHub Actions
@@ -128,7 +128,7 @@ Der Workflow [`injection.yml`](../.github/workflows/injection.yml) startet das S
 |---|---|---|
 | `provider` | `ollama`, `openai` oder `all` | `ollama` |
 | `models` | Ollama-Modelle, komma-getrennt (leer = Skript-Default) | `qwen2.5:0.5b,llama3.2:1b,gemma2:2b` |
-| `openai_models` | OpenAI-Modelle, komma-getrennt (leer = Skript-Default) | `gpt-4.1-nano,gpt-4o-mini,gpt-4.1-mini` |
+| `openai_models` | OpenAI-Modelle, komma-getrennt (leer = Skript-Default) | `gpt-4.1-nano,gpt-4o-mini,gpt-4.1-mini,gpt-5.4,gpt-5.4-mini,gpt-5.5` |
 | `runs` | Durchläufe pro Variante und Modell | `5` |
 | `mock` | Trockenlauf mit Fake-Modell, wird **nicht** gepusht | aus |
 
