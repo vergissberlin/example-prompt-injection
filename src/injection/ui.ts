@@ -33,7 +33,7 @@ const OUTCOME_STYLE: Record<Outcome, { icon: string; label: string; paint: (s: s
 
 export function banner(model: string, runs: number, mock: boolean, provider = "ollama"): string {
   const lines = [
-    `${c.bold("Prompt-Injection-Test")}  ${c.dim("· AI Café #008")}`,
+    `${c.bold("Prompt-Injection-Test")}`,
     `Modell: ${c.cyan(model)}${mock ? c.yellow("  (Mock, kein echtes Modell)") : ""}`,
     `Durchläufe pro Variante: ${c.cyan(String(runs))}`,
   ];

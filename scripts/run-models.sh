@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Multi-Modell-Lauf für die Prompt-Injection-Demo (AI Café #008).
+# Multi-Modell-Lauf für die Prompt-Injection-Demo.
 #
 # Phase 1 (Tests):    pro Modell pullen (nur Ollama) -> Test unter asciinema aufzeichnen -> Modell wieder löschen.
 # Phase 2 (GIFs):     erst nach ALLEN Tests: .cast -> GIF in fester Terminalgröße und Breite (Default 1920 px).
