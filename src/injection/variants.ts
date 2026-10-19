@@ -34,10 +34,14 @@ export function disguise(markdown: string): string {
   return stripComments(markdown).trimEnd() + "\n" + DISGUISED_RULE;
 }
 
-/** Baut die drei Demo-Varianten aus den Repo-Dateien. */
+/**
+ * Baut die drei Demo-Varianten aus den Repo-Dateien.
+ * Als README dient `fixtures/README.md`, nicht die echte README: Die erklärt die Demo samt Marker
+ * und würde schon die Kontrolle (C) kontaminieren.
+ */
 export function buildVariants(repoRoot: string): Variant[] {
-  const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
-  const contributing = readFileSync(join(repoRoot, "docs", "CONTRIBUTING.md"), "utf8");
+  const readme = readFileSync(join(repoRoot, "fixtures", "README.md"), "utf8");
+  const contributing = readFileSync(join(repoRoot, "CONTRIBUTING.md"), "utf8");
   const ctx = (doc: string) => `${readme}\n\n---\n\n${doc}`;
   return [
     { id: "C", label: "Kontrolle (ohne Injection)", context: ctx(stripComments(contributing)) },

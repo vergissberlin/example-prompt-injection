@@ -7,12 +7,16 @@ on:
       provider:
         description: "Modell-Provider"
         type: choice
-        options: [ollama, openai]
+        options: [ollama, openai, all]
         default: ollama
       models:
-        description: 'Komma-getrennte Modelle (leer = Script-Default des Providers). Ollama-Tipp für CPU-Runner: kleine Modelle.'
+        description: "Ollama-Modelle, komma-getrennt (leer = Script-Default). Auf dem CPU-Runner nur kleine Modelle."
         type: string
         default: "qwen2.5:0.5b,llama3.2:1b,gemma2:2b"
+      openai_models:
+        description: "OpenAI-Modelle, komma-getrennt (leer = Script-Default)"
+        type: string
+        default: ""
       runs:
         description: "Durchläufe pro Variante und Modell"
         type: string
@@ -47,14 +51,18 @@ jobs:
         env:
           PROVIDER: ${{ inputs.provider }}
           MODELS: ${{ inputs.models }}
+          OPENAI_MODELS: ${{ inputs.openai_models }}
           RUNS: ${{ inputs.runs }}
           MOCK: ${{ inputs.mock }}
           HAS_OPENAI_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
         run: |
           [[ "$RUNS" =~ ^[1-9][0-9]*$ ]] || { echo "::error::runs muss eine positive Zahl sein."; exit 1; }
           # Nur harmlose Zeichen zulassen, die Werte landen in einer Shell-Kommandozeile
-          [[ -z "$MODELS" || "$MODELS" =~ ^[A-Za-z0-9._:/,-]+$ ]] \
-            || { echo "::error::models enthält unerlaubte Zeichen."; exit 1; }
+          for v in "$MODELS" "$OPENAI_MODELS"; do
+            [[ -z "$v" || "$v" =~ ^[A-Za-z0-9._:/,-]+$ ]] \
+              || { echo "::error::Modellliste enthält unerlaubte Zeichen."; exit 1; }
+          done
+          # Bei provider=all überspringt das Script OpenAI ohne Key, nur provider=openai braucht ihn zwingend
           if [[ "$PROVIDER" == "openai" && "$MOCK" != "true" && "$HAS_OPENAI_KEY" != "true" ]]; then
             echo "::error::Secret OPENAI_API_KEY fehlt (Settings > Secrets and variables > Actions)."
             exit 1
@@ -78,10 +86,11 @@ jobs:
       - name: Preflight (CLI mit Mock prüfen)
         run: pnpm injection --mock --runs 1 > /dev/null
 
-      - name: asciinema installieren
+      # ffmpeg skaliert die GIFs auf 1920 px (das Script nutzt sonst ImageMagick als Ersatz)
+      - name: asciinema und ffmpeg installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y asciinema
+          sudo apt-get install -y asciinema ffmpeg
 
       # GIFs sind optional (das Script überspringt sie ohne agg), aber für die Demo nett.
       - name: agg installieren (fest gepinnt, Checksumme geprüft)
@@ -92,7 +101,7 @@ jobs:
           rm agg
 
       - name: Ollama installieren und starten
-        if: inputs.provider == 'ollama' && !inputs.mock
+        if: inputs.provider != 'openai' && !inputs.mock
         run: |
           curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION="$OLLAMA_VERSION" sh
           # Der Installer startet unter systemd evtl. schon einen Dienst, sonst selbst starten
@@ -111,6 +120,7 @@ jobs:
         env:
           PROVIDER: ${{ inputs.provider }}
           MODELS: ${{ inputs.models }}
+          OPENAI_MODELS: ${{ inputs.openai_models }}
           RUNS: ${{ inputs.runs }}
           MOCK: ${{ inputs.mock }}
           # Key nur als Env an genau diesen Step, nie als Argument (sonst in ps und .cast sichtbar)
@@ -119,10 +129,11 @@ jobs:
         run: |
           args=(--provider "$PROVIDER" --runs "$RUNS")
           [[ -n "$MODELS" ]] && args+=(--models "$MODELS")
+          [[ -n "$OPENAI_MODELS" ]] && args+=(--openai-models "$OPENAI_MODELS")
           [[ "$MOCK" == "true" ]] && args+=(--mock)
           # asciinema braucht ein Terminal: auf dem Runner gibt es kein TTY, daher Pseudo-TTY via script.
-          # -e reicht den Exit-Code durch, stty setzt eine sinnvolle Größe für die GIFs.
-          cmd="stty cols 100 rows 30; scripts/run-models.sh $(printf '%q ' "${args[@]}")"
+          # -e reicht den Exit-Code durch, stty setzt 120x30 passend zu den GIF-Defaults des Scripts.
+          cmd="stty cols 120 rows 30; scripts/run-models.sh $(printf '%q ' "${args[@]}")"
           script -qefc "$cmd" /dev/null
 
       # Sicherheitsnetz, falls der Push unten scheitert (z. B. Branch Protection)
@@ -144,7 +155,7 @@ jobs:
             echo "Keine Änderungen an recordings/, nichts zu committen."
             exit 0
           fi
-          git commit -m "chore(recordings): update model recordings (${{ inputs.provider }})"
+          git commit -m "chore(recordings): update recordings (provider: ${{ inputs.provider }})"
           # main kann sich während des Laufs bewegt haben: rebasen und bei Race erneut versuchen
           for attempt in 1 2 3; do
             git pull --rebase origin main

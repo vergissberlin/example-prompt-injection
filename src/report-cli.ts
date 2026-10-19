@@ -1,0 +1,43 @@
+import { existsSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { parseManifest, renderModelReport, renderSummary, type ReportEntry, type RunData } from "./injection/report";
+
+/** Liest `<base>.json`; fehlt die Datei oder ist sie kaputt, gibt es schlicht kein Ergebnis. */
+async function loadData(path: string): Promise<RunData | undefined> {
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as RunData;
+  } catch {
+    return undefined;
+  }
+}
+
+async function main() {
+  const i = process.argv.indexOf("--dir");
+  const dir = resolve(i >= 0 ? (process.argv[i + 1] ?? "recordings") : "recordings");
+  const manifest = join(dir, "manifest.tsv");
+  if (!existsSync(manifest)) {
+    console.error(`Keine ${manifest} gefunden. Zuerst scripts/run-models.sh ausführen.`);
+    process.exit(1);
+  }
+
+  const rows = parseManifest(await readFile(manifest, "utf8"));
+  const entries: ReportEntry[] = [];
+  for (const row of rows) {
+    entries.push({
+      ...row,
+      data: await loadData(join(dir, `${row.base}.json`)),
+      cast: existsSync(join(dir, `${row.base}.cast`)),
+      gif: existsSync(join(dir, `${row.base}.gif`)),
+    });
+  }
+
+  for (const e of entries) await writeFile(join(dir, `${e.base}.md`), renderModelReport(e));
+  await writeFile(join(dir, "summary.md"), renderSummary(entries, new Date().toISOString()));
+  console.log(`${entries.length} Berichte und summary.md in ${dir}`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

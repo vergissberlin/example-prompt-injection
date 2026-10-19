@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -9,6 +10,7 @@ import {
   OpenAIClient,
   type ChatClient,
 } from "./injection/client";
+import type { RunData } from "./injection/report";
 import { runExperiment, summarize } from "./injection/runner";
 import { banner, c, runLine, summaryTable, variantHeader, verdict } from "./injection/ui";
 import { buildVariants } from "./injection/variants";
@@ -22,6 +24,7 @@ function parseArgs(argv: string[]) {
     mock: false,
     host: undefined as string | undefined,
     provider: "ollama" as Provider,
+    json: undefined as string | undefined,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -35,9 +38,10 @@ function parseArgs(argv: string[]) {
         process.exit(2);
       }
       opts.provider = p;
-    } else if (a === "--mock") opts.mock = true;
+    } else if (a === "--json") opts.json = argv[++i] ?? opts.json;
+    else if (a === "--mock") opts.mock = true;
     else if (a === "--help" || a === "-h") {
-      console.log("Nutzung: pnpm injection [--provider ollama|openai] [--model mistral] [--runs 10] [--host http://localhost:11434] [--mock]");
+      console.log("Nutzung: pnpm injection [--provider ollama|openai] [--model mistral] [--runs 10] [--host http://localhost:11434] [--mock] [--json ergebnis.json]");
       console.log("OpenAI: OPENAI_API_KEY als Env setzen, Default-Modell gpt-4.1-mini, optional OPENAI_BASE_URL.");
       process.exit(0);
     }
@@ -70,6 +74,7 @@ async function main() {
     }
   }
 
+  const startedAt = new Date().toISOString();
   let current = "";
   const results = await runExperiment(client, model, variants, opts.runs, (r) => {
     if (r.variant !== current) {
@@ -92,6 +97,20 @@ async function main() {
   const summaries = variants.map((v) => summarize(v, results));
   console.log(summaryTable(summaries));
   console.log(verdict(summaries));
+
+  // Strukturiertes Ergebnis für die Berichte (kein Key, nur Testdaten).
+  if (opts.json) {
+    const data: RunData = {
+      provider: opts.mock ? "mock" : opts.provider,
+      model,
+      runs: opts.runs,
+      mock: opts.mock,
+      startedAt,
+      summaries,
+      results,
+    };
+    await writeFile(opts.json, JSON.stringify(data, null, 2) + "\n");
+  }
 }
 
 main().catch((e) => {

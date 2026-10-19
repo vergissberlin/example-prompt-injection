@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # Multi-Modell-Lauf für die Prompt-Injection-Demo (AI Café #008).
 #
-# Pro Modell: pullen -> Test unter asciinema aufzeichnen -> Modell sofort wieder löschen.
+# Phase 1 (Tests):    pro Modell pullen (nur Ollama) -> Test unter asciinema aufzeichnen -> Modell wieder löschen.
+# Phase 2 (GIFs):     erst nach ALLEN Tests: .cast -> GIF in fester Terminalgröße und Breite (Default 1920 px).
+# Phase 3 (Berichte): ein Markdown-Bericht pro Aufzeichnung plus summary.md über alle Modelle.
 # Läuft strikt sequenziell, damit nie mehr als ein (selbst geladenes) Modell auf der Platte liegt.
 # Bereits vorher installierte Modelle werden nie gelöscht.
 set -euo pipefail
 
-PROVIDER="ollama"
-OPENAI_MODELS="gpt-4.1-nano,gpt-4o-mini,gpt-4.1-mini,gpt-5-mini,gpt-5"
+PROVIDER="all"
+OPENAI_DEFAULT_MODELS="gpt-4.1-nano,gpt-4o-mini,gpt-4.1-mini,gpt-5-mini,gpt-5"
 DEFAULT_MODELS="qwen2.5:0.5b,llama3.2:1b,gemma2:2b,llama3.2:3b,phi3:mini,mistral:7b,llama3.1:8b"
-MODELS="${MODELS:-}"
+MODELS="${MODELS:-$DEFAULT_MODELS}"
+OPENAI_MODELS="${OPENAI_MODELS:-$OPENAI_DEFAULT_MODELS}"
 RUNS=10
 HOST="http://localhost:11434"
 OUT="recordings"
@@ -17,20 +20,34 @@ KEEP=0
 MOCK=0
 GIF=1
 IDLE=1
+GIF_WIDTH=1920
+GIF_COLS=120
+GIF_ROWS=30
+HOLD=5
 
 usage() {
   cat <<USAGE
-Nutzung: scripts/run-models.sh [--provider ollama|openai] [--models "a:1b,b:2b"] [--runs 10] [--host URL] [--out DIR] [--keep] [--mock] [--no-gif] [--idle SEK]
+Nutzung: scripts/run-models.sh [--provider ollama|openai|all] [--models "a:1b,b:2b"] [--openai-models "gpt-5,..."]
+                               [--runs 10] [--host URL] [--out DIR] [--keep] [--mock] [--no-gif] [--idle SEK]
+                               [--gif-width PX] [--gif-cols N] [--gif-rows N] [--hold SEK]
 
-  --provider ollama (Default, lokal) oder openai (Cloud, Key aus Env OPENAI_API_KEY, kein pull/rm)
-  --models  Komma-getrennte Modelle (Ollama-Default: $DEFAULT_MODELS, OpenAI-Default: $OPENAI_MODELS, auch via MODELS-Env)
-  --runs    Durchläufe pro Variante und Modell (Default: 10)
-  --host    Ollama-Host (Default: $HOST)
-  --out     Zielordner für .cast-Dateien (Default: recordings)
-  --keep    Modelle nach dem Test NICHT löschen
-  --mock    Trockenlauf: Fake-Modell, kein pull/rm, kein Ollama nötig
-  --no-gif  Keine GIFs aus den Aufzeichnungen erzeugen (Default: GIF pro Modell, wenn agg installiert ist)
-  --idle    Pausen im GIF auf max. SEK Sekunden kürzen (Default: $IDLE)
+  --provider      ollama (lokal), openai (Cloud) oder all (Default: beide nacheinander).
+                  Bei all wird ein nicht verfügbarer Provider (kein Ollama, kein OPENAI_API_KEY) übersprungen.
+  --models        Ollama-Modelle, komma-getrennt (Default: $DEFAULT_MODELS, auch via MODELS-Env)
+  --openai-models OpenAI-Modelle, komma-getrennt (Default: $OPENAI_DEFAULT_MODELS, auch via OPENAI_MODELS-Env)
+  --runs          Durchläufe pro Variante und Modell (Default: 10)
+  --host          Ollama-Host (Default: $HOST)
+  --out           Zielordner für Aufzeichnungen, Berichte und GIFs (Default: recordings)
+  --keep          Ollama-Modelle nach dem Test NICHT löschen
+  --mock          Trockenlauf: Fake-Modell, kein pull/rm, weder Ollama noch Key nötig
+  --no-gif        Keine GIFs erzeugen (Default: GIF pro Aufzeichnung nach allen Tests, wenn agg installiert ist)
+  --idle          Pausen im GIF auf max. SEK Sekunden kürzen (Default: $IDLE)
+  --gif-width     Breite der GIFs in Pixeln (Default: $GIF_WIDTH, Full HD für Vollbild-Präsentationen)
+  --gif-cols      Terminalbreite im GIF in Spalten, schneidet ungenutzten Platz ab (Default: $GIF_COLS)
+  --gif-rows      Terminalhöhe im GIF in Zeilen, 120x30 passt grob zu 16:9 (Default: $GIF_ROWS)
+  --hold          Letztes Bild im GIF so lange halten, bevor es von vorn startet (Default: $HOLD s)
+
+Der OpenAI-Key kommt nur aus der Umgebungsvariable OPENAI_API_KEY (nie als Argument, sonst in ps und .cast sichtbar).
 USAGE
 }
 
@@ -38,6 +55,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --provider) PROVIDER="${2:?--provider braucht einen Wert}"; shift 2 ;;
     --models) MODELS="${2:?--models braucht einen Wert}"; shift 2 ;;
+    --openai-models) OPENAI_MODELS="${2:?--openai-models braucht einen Wert}"; shift 2 ;;
     --runs) RUNS="${2:?--runs braucht einen Wert}"; shift 2 ;;
     --host) HOST="${2:?--host braucht einen Wert}"; shift 2 ;;
     --out) OUT="${2:?--out braucht einen Wert}"; shift 2 ;;
@@ -45,47 +63,110 @@ while [[ $# -gt 0 ]]; do
     --mock) MOCK=1; shift ;;
     --no-gif) GIF=0; shift ;;
     --idle) IDLE="${2:?--idle braucht einen Wert}"; shift 2 ;;
+    --gif-width) GIF_WIDTH="${2:?--gif-width braucht einen Wert}"; shift 2 ;;
+    --gif-cols) GIF_COLS="${2:?--gif-cols braucht einen Wert}"; shift 2 ;;
+    --gif-rows) GIF_ROWS="${2:?--gif-rows braucht einen Wert}"; shift 2 ;;
+    --hold) HOLD="${2:?--hold braucht einen Wert}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unbekannte Option: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
-[[ "$PROVIDER" == "ollama" || "$PROVIDER" == "openai" ]] || { echo "--provider muss ollama oder openai sein." >&2; exit 2; }
-[[ -n "$MODELS" ]] || { [[ "$PROVIDER" == "openai" ]] && MODELS="$OPENAI_MODELS" || MODELS="$DEFAULT_MODELS"; }
+[[ "$PROVIDER" == "ollama" || "$PROVIDER" == "openai" || "$PROVIDER" == "all" ]] \
+  || { echo "--provider muss ollama, openai oder all sein." >&2; exit 2; }
 [[ "$IDLE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--idle muss eine Zahl (Sekunden) sein." >&2; exit 2; }
 [[ "$RUNS" =~ ^[1-9][0-9]*$ ]] || { echo "--runs muss eine positive Zahl sein." >&2; exit 2; }
+[[ "$GIF_WIDTH" =~ ^[1-9][0-9]*$ ]] || { echo "--gif-width muss eine positive Zahl (Pixel) sein." >&2; exit 2; }
+[[ "$GIF_COLS" =~ ^[1-9][0-9]*$ ]] || { echo "--gif-cols muss eine positive Zahl sein." >&2; exit 2; }
+[[ "$GIF_ROWS" =~ ^[1-9][0-9]*$ ]] || { echo "--gif-rows muss eine positive Zahl sein." >&2; exit 2; }
+[[ "$HOLD" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--hold muss eine Zahl (Sekunden) sein." >&2; exit 2; }
 
 # Immer relativ zum Projektordner arbeiten, egal von wo das Skript gestartet wird.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 mkdir -p "$OUT"
 
+# Jeder Lauf überschreibt die Ergebnisse des vorherigen: Aufzeichnungen samt zugehörigem
+# .json/.md/.gif und die Gesamtdateien werden entfernt. Andere Dateien im Ordner bleiben unberührt.
+shopt -s nullglob
+for old in "$OUT"/*.cast; do rm -f "$old" "${old%.cast}".{json,md,gif}; done
+shopt -u nullglob
+rm -f "$OUT/manifest.tsv" "$OUT/summary.md"
+
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Fehlt: $1 ($2)" >&2; exit 1; }; }
 need asciinema "Installation: https://docs.asciinema.org/manual/cli/installation/"
 need pnpm "Installation: https://pnpm.io/installation"
-if [[ $MOCK -eq 0 && "$PROVIDER" == "openai" ]]; then
-  # Key nur per Env (nie als CLI-Argument, sonst in ps und .cast sichtbar).
-  [[ -n "${OPENAI_API_KEY:-}" ]] || { echo "OPENAI_API_KEY ist nicht gesetzt (export OPENAI_API_KEY=...)." >&2; exit 1; }
-elif [[ $MOCK -eq 0 ]]; then
-  need ollama "Installation: https://ollama.com/download"
-  curl -fsS "$HOST/api/tags" >/dev/null 2>&1 \
-    || { echo "Ollama unter $HOST nicht erreichbar. Starte es mit \`ollama serve\` oder nutze --host / --mock." >&2; exit 1; }
-fi
 
-# GIF ist optional: ohne agg läuft alles wie bisher, es gibt nur eine Warnung.
-if [[ $GIF -eq 1 ]] && ! command -v agg >/dev/null 2>&1; then
-  echo "Hinweis: agg nicht gefunden, es werden keine GIFs erzeugt (https://github.com/asciinema/agg)." >&2
-  GIF=0
-fi
+# Gründe, warum ein Provider nicht läuft (leer = alles da). Mock braucht nichts davon.
+ollama_problem() {
+  [[ $MOCK -eq 1 ]] && return 0
+  command -v ollama >/dev/null 2>&1 || { echo "ollama nicht installiert (https://ollama.com/download)"; return 0; }
+  curl -fsS "$HOST/api/tags" >/dev/null 2>&1 || echo "Ollama unter $HOST nicht erreichbar (ollama serve, --host oder --mock)"
+}
+openai_problem() {
+  [[ $MOCK -eq 1 ]] && return 0
+  [[ -n "${OPENAI_API_KEY:-}" ]] || echo "OPENAI_API_KEY ist nicht gesetzt (export OPENAI_API_KEY=...)"
+}
 
-# .cast -> .gif. Pausen über --idle-time-limit kappen, statt feste Frames pro Sekunde.
-# Ohne echtes Terminal steht im Header Breite/Höhe 0, das agg ablehnt: dann Defaults setzen.
-make_gif() {
-  local cast="$1" gif="${1%.cast}.gif"
-  sed -i -E '1{s/"(width|cols)": *0([,}])/"\1": 100\2/;s/"(height|rows)": *0([,}])/"\1": 30\2/}' "$cast"
-  if agg --idle-time-limit "$IDLE" --fps-cap 15 "$cast" "$gif" >/dev/null 2>&1; then
-    echo "  GIF: $gif"
+# Bei expliziter Provider-Wahl ist ein fehlendes Setup ein Fehler, bei "all" wird übersprungen.
+PROVIDERS=()
+SKIPPED=()
+for p in ollama openai; do
+  [[ "$PROVIDER" == "all" || "$PROVIDER" == "$p" ]] || continue
+  problem="$("${p}_problem")"
+  if [[ -z "$problem" ]]; then
+    PROVIDERS+=("$p")
+  elif [[ "$PROVIDER" == "all" ]]; then
+    echo "Hinweis: $p wird übersprungen: $problem" >&2
+    SKIPPED+=("$p|$problem")
   else
+    echo "$problem" >&2
+    exit 1
+  fi
+done
+
+# GIF ist optional: ohne agg oder ohne Werkzeug zum Skalieren läuft alles wie bisher, es gibt nur eine Warnung.
+RESIZER=""
+if [[ $GIF -eq 1 ]]; then
+  if ! command -v agg >/dev/null 2>&1; then
+    echo "Hinweis: agg nicht gefunden, es werden keine GIFs erzeugt (https://github.com/asciinema/agg)." >&2
+    GIF=0
+  elif command -v ffmpeg >/dev/null 2>&1; then RESIZER="ffmpeg"
+  elif command -v convert >/dev/null 2>&1; then RESIZER="convert"
+  else
+    echo "Hinweis: weder ffmpeg noch ImageMagick (convert) gefunden, GIFs können nicht auf ${GIF_WIDTH}px skaliert werden." >&2
+    GIF=0
+  fi
+fi
+
+# agg kennt keine Pixelbreite. Deshalb: feste Terminalgröße (--cols/--rows, schneidet ungenutzten Platz des
+# Aufnahmefensters ab), Schriftgröße so wählen, dass das Rohbild schon mindestens GIF_WIDTH breit ist
+# (agg: Breite ~ 0,612 * Schriftgröße * Spalten), und erst dann exakt skalieren. Das bleibt scharf.
+# Pausen werden über --idle-time-limit gekappt, das letzte Bild bleibt --hold Sekunden stehen.
+# Ohne echtes Terminal steht im Cast-Header Breite/Höhe 0, das agg ablehnt: dann Defaults setzen.
+make_gif() {
+  local cast="$1" gif="${1%.cast}.gif" raw font
+  font=$(( (GIF_WIDTH * 1000 + GIF_COLS * 612 - 1) / (GIF_COLS * 612) ))
+  raw="$(mktemp "${gif%.gif}.XXXXXX.gif")"
+  # Portabel für GNU- und BSD-sed (macOS): keine { }-Gruppe, kein -i.
+  sed -E -e '1s/"(width|cols)": *0([,}])/"\1": 100\2/' -e '1s/"(height|rows)": *0([,}])/"\1": 30\2/' "$cast" >"$cast.tmp" \
+    && mv "$cast.tmp" "$cast" || rm -f "$cast.tmp"
+  if agg --cols "$GIF_COLS" --rows "$GIF_ROWS" --font-size "$font" --idle-time-limit "$IDLE" \
+        --last-frame-duration "$HOLD" --fps-cap 15 "$cast" "$raw" >/dev/null 2>&1 && resize_gif "$raw" "$gif"; then
+    echo "  GIF: $gif (${GIF_WIDTH}px)"
+  else
+    rm -f "$gif"
     echo "  WARNUNG: GIF aus $cast konnte nicht erzeugt werden." >&2
+  fi
+  rm -f "$raw"
+}
+
+resize_gif() {
+  local in="$1" out="$2"
+  if [[ "$RESIZER" == "ffmpeg" ]]; then
+    ffmpeg -v error -y -i "$in" \
+      -vf "scale=${GIF_WIDTH}:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" "$out"
+  else
+    convert "$in" -coalesce -resize "${GIF_WIDTH}x" -layers optimize "$out"
   fi
 }
 
@@ -116,81 +197,114 @@ is_installed() {
 
 free_gb() { df -Pk . | awk 'NR==2 {printf "%d", $4/1024/1024}'; }
 
+# manifest.tsv: Eingabe für `pnpm report` (base, provider, model, exit oder "-", Hinweis).
+MANIFEST="$OUT/manifest.tsv"
+: >"$MANIFEST"
+manifest_row() { printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5" >>"$MANIFEST"; }
+slug_of() { local s="${2//[:\/]/_}"; echo "${1}_$s"; }
+
 SUMMARY=()
-IFS=',' read -r -a MODEL_LIST <<<"$MODELS"
+CASTS=()
 
-for model in "${MODEL_LIST[@]}"; do
-  model="${model// /}"
-  [[ -n "$model" ]] || continue
-  echo
-  echo "=== $model ==="
+run_provider() {
+  local provider="$1" list="$2" model slug cast json cmd rc status_pull deleted note
+  local -a model_list
+  IFS=',' read -r -a model_list <<<"$list"
+  for model in "${model_list[@]}"; do
+    model="${model// /}"
+    [[ -n "$model" ]] || continue
+    slug="$(slug_of "$provider" "$model")"
+    echo
+    echo "=== $model ($provider) ==="
 
-  status_pull="-"
-  if [[ $MOCK -eq 0 && "$PROVIDER" == "ollama" ]]; then
-    if is_installed "$model"; then
-      echo "  Bereits installiert, wird nach dem Test NICHT gelöscht."
-      status_pull="vorhanden"
-    else
-      echo "  Freier Speicher: ~$(free_gb) GB. Lade $model ..."
-      if OLLAMA_HOST="$HOST" ollama pull "$model"; then
-        PULLED="$model"
-        status_pull="gepullt"
+    status_pull="-"
+    if [[ $MOCK -eq 0 && "$provider" == "ollama" ]]; then
+      if is_installed "$model"; then
+        echo "  Bereits installiert, wird nach dem Test NICHT gelöscht."
+        status_pull="vorhanden"
       else
-        echo "  PULL-FEHLER bei $model, überspringe." >&2
-        SUMMARY+=("$model|PULL-FEHLER|-|-")
-        continue
+        echo "  Freier Speicher: ~$(free_gb) GB. Lade $model ..."
+        if OLLAMA_HOST="$HOST" ollama pull "$model"; then
+          PULLED="$model"
+          status_pull="gepullt"
+        else
+          echo "  PULL-FEHLER bei $model, überspringe." >&2
+          manifest_row "$slug" "$provider" "$model" "-" "Pull-Fehler: Modellname/Tag prüfen"
+          SUMMARY+=("$provider|$model|PULL-FEHLER|-|-")
+          continue
+        fi
       fi
     fi
-  fi
 
-  slug="${model//[:\/]/_}"
-  cast="$OUT/$slug.cast"
-  cmd="pnpm injection --provider $PROVIDER --model $(printf %q "$model") --runs $RUNS"
-  [[ "$PROVIDER" == "ollama" ]] && cmd+=" --host $(printf %q "$HOST")"
-  [[ $MOCK -eq 1 ]] && cmd+=" --mock"
+    cast="$OUT/$slug.cast"
+    json="$OUT/$slug.json"
+    rm -f "$json"
+    cmd="pnpm injection --provider $provider --model $(printf %q "$model") --runs $RUNS --json $(printf %q "$json")"
+    [[ "$provider" == "ollama" ]] && cmd+=" --host $(printf %q "$HOST")"
+    [[ $MOCK -eq 1 ]] && cmd+=" --mock"
 
-  # Exit-Code des Tests festhalten, aber bei Fehlern trotzdem weitermachen und aufräumen.
-  rc=0
-  asciinema rec --overwrite --command "$cmd" "$cast" || rc=$?
-  [[ $GIF -eq 1 && -s "$cast" ]] && make_gif "$cast"
+    # Exit-Code des Tests festhalten, aber bei Fehlern trotzdem weitermachen und aufräumen.
+    rc=0
+    asciinema rec --overwrite --command "$cmd" "$cast" || rc=$?
+    CASTS+=("$cast")
 
-  cleanup
-  if [[ $MOCK -eq 1 || "$PROVIDER" == "openai" ]]; then deleted="-"
-  elif [[ $status_pull == "gepullt" && $KEEP -eq 0 ]]; then deleted="ja"
-  else deleted="nein"; fi
-  SUMMARY+=("$model|exit $rc|$cast|$deleted")
+    cleanup
+    if [[ $MOCK -eq 1 || "$provider" == "openai" ]]; then deleted="-"
+    elif [[ $status_pull == "gepullt" && $KEEP -eq 0 ]]; then deleted="ja"
+    else deleted="nein"; fi
+    note=""
+    [[ $rc -eq 0 ]] || note="Testlauf mit Fehler beendet (exit $rc)"
+    manifest_row "$slug" "$provider" "$model" "$rc" "$note"
+    SUMMARY+=("$provider|$model|exit $rc|$deleted|$cast")
+  done
+}
+
+# --- Phase 1: Tests ---------------------------------------------------------
+for entry in ${SKIPPED[@]+"${SKIPPED[@]}"}; do
+  IFS='|' read -r sp reason <<<"$entry"
+  if [[ "$sp" == "ollama" ]]; then skipped_list="$MODELS"; else skipped_list="$OPENAI_MODELS"; fi
+  IFS=',' read -r -a skipped_models <<<"$skipped_list"
+  for m in "${skipped_models[@]}"; do
+    m="${m// /}"
+    [[ -n "$m" ]] || continue
+    manifest_row "$(slug_of "$sp" "$m")" "$sp" "$m" "-" "Übersprungen: $reason"
+    SUMMARY+=("$sp|$m|ÜBERSPRUNGEN|-|-")
+  done
 done
 
+for p in ${PROVIDERS[@]+"${PROVIDERS[@]}"}; do
+  if [[ "$p" == "ollama" ]]; then run_provider ollama "$MODELS"; else run_provider openai "$OPENAI_MODELS"; fi
+done
+
+# --- Phase 2: GIFs, erst nachdem alle Tests durch sind ----------------------
+if [[ $GIF -eq 1 && ${#CASTS[@]} -gt 0 ]]; then
+  echo
+  echo "=== GIFs (${GIF_WIDTH}px) ==="
+  for cast in ${CASTS[@]+"${CASTS[@]}"}; do
+    [[ -s "$cast" ]] && make_gif "$cast"
+  done
+fi
+
+# --- Phase 3: Berichte pro Aufzeichnung und Gesamtzusammenfassung -----------
 echo
 echo "=== Zusammenfassung ==="
-printf '%-22s %-14s %-9s %s\n' "Modell" "Ergebnis" "Gelöscht" "Aufzeichnung"
-for row in "${SUMMARY[@]}"; do
-  IFS='|' read -r m r c d <<<"$row"
-  printf '%-22s %-14s %-9s %s\n' "$m" "$r" "$d" "$c"
+printf '%-8s %-22s %-14s %-9s %s\n' "Anbieter" "Modell" "Ergebnis" "Gelöscht" "Aufzeichnung"
+for row in ${SUMMARY[@]+"${SUMMARY[@]}"}; do
+  IFS='|' read -r pr m r d c <<<"$row"
+  printf '%-8s %-22s %-14s %-9s %s\n' "$pr" "$m" "$r" "$d" "$c"
 done
 
-# Markdown-Report neben den Aufzeichnungen (wird bei jedem Lauf überschrieben).
-REPORT="$OUT/report.md"
-{
-  echo "# Prompt-Injection-Test: Multi-Modell-Lauf"
-  echo
-  echo "- Zeitpunkt: $(TZ=Europe/Berlin date '+%Y-%m-%d %H:%M %Z')"
-  echo "- Durchläufe pro Variante: $RUNS"
-  echo "- Host: $([[ $MOCK -eq 1 ]] && echo "Mock (Fake-Modell)" || { [[ "$PROVIDER" == "openai" ]] && echo "OpenAI API (Cloud)" || echo "$HOST"; })"
-  if [[ "$PROVIDER" == "openai" ]]; then echo "- Modelle: Cloud, nichts gepullt oder gelöscht"
-  elif [[ $MOCK -eq 1 ]]; then echo "- Modelle: keine gepullt (Mock)"
-  else echo "- Selbst gepullte Modelle werden nach dem Test gelöscht: $([[ $KEEP -eq 1 ]] && echo nein || echo ja)"; fi
-  echo
-  echo "| Modell | Ergebnis | Gelöscht | Aufzeichnung |"
-  echo "|---|---|---|---|"
-  for row in "${SUMMARY[@]}"; do
-    IFS='|' read -r m r c d <<<"$row"
-    echo "| \`$m\` | $r | $d | $([[ $c == "-" ]] && echo "-" || echo "\`$c\`") |"
-  done
-  echo
-  echo "Ergebnis \`exit 0\` heißt nur, dass der Test durchlief. Die Auswertung (INJIZIERT, GEWARNT, ...) steht in der jeweiligen Aufzeichnung: \`asciinema play <datei>\`."
-} >"$REPORT"
-
 echo
-echo "Report:     $REPORT"
-echo "Abspielen:  asciinema play $OUT/<modell>.cast"
+if pnpm --silent report --dir "$OUT"; then
+  echo "Zusammenfassung: $OUT/summary.md"
+  echo "Berichte:        $OUT/<anbieter>_<modell>.md"
+else
+  echo "WARNUNG: Berichte konnten nicht erzeugt werden (manuell: pnpm report --dir $OUT)." >&2
+fi
+echo "Abspielen:       asciinema play $OUT/<anbieter>_<modell>.cast"
+
+# Nichts getestet (alle Provider übersprungen, alle Pulls fehlgeschlagen): nicht als Erfolg melden.
+if [[ ${#CASTS[@]} -eq 0 ]]; then
+  echo "FEHLER: Es wurde kein Modell getestet, siehe Hinweise oben." >&2
+  exit 1
+fi
