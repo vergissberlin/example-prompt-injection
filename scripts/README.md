@@ -3,7 +3,7 @@
 Testet mehrere **Ollama-Modelle (lokal) und OpenAI-Modelle (Cloud)** nacheinander gegen die harmlose Canary-Injection
 (`INJECTION-DEMO-ERFOLGREICH`, siehe [`DEMO.md`](../docs/DEMO.md)). Jeder Test wird mit
 [asciinema](https://docs.asciinema.org/manual/cli/installation/) aufgezeichnet. Nach **allen** Tests entstehen
-GIFs (1024 px breit), ein Bericht pro Aufzeichnung und eine Gesamtzusammenfassung.
+GIFs (Full HD, 1920 px breit), ein Bericht pro Aufzeichnung und eine Gesamtzusammenfassung.
 Selbst gepullte Ollama-Modelle werden sofort wieder gelöscht: Es liegt nie mehr als eins auf der Platte.
 
 ## Voraussetzungen
@@ -37,7 +37,10 @@ Ist das Skript nicht ausführbar, starte es mit `bash scripts/run-models.sh ...`
 | `--runs N` | Durchläufe pro Variante und Modell | `10` |
 | `--host URL` | Ollama-Host | `http://localhost:11434` |
 | `--no-gif` | Keine GIFs erzeugen | GIF an (wenn `agg` und `ffmpeg`/`convert` da sind) |
-| `--gif-width PX` | Breite der GIFs in Pixeln | `1024` |
+| `--gif-width PX` | Breite der GIFs in Pixeln (Full HD für Vollbild-Präsentationen) | `1920` |
+| `--gif-cols N` | Terminalbreite im GIF in Spalten; schneidet ungenutzten Platz des Aufnahmefensters ab | `120` |
+| `--gif-rows N` | Terminalhöhe im GIF in Zeilen; 120x30 passt grob zu 16:9 | `30` |
+| `--hold SEK` | Letztes Bild so lange halten, bevor das GIF von vorn startet | `5` |
 | `--idle SEK` | Pausen im GIF auf max. SEK Sekunden kürzen | `1` |
 | `--out DIR` | Zielordner für Aufzeichnungen, Berichte und GIFs | `recordings` |
 | `--keep` | Ollama-Modelle nach dem Test **nicht** löschen | aus |
@@ -48,7 +51,7 @@ Ist das Skript nicht ausführbar, starte es mit `bash scripts/run-models.sh ...`
 
 ```
 Phase 1  Tests      pro Modell: [ollama pull] -> asciinema rec -> pnpm injection ... --json -> [ollama rm]
-Phase 2  GIFs       erst wenn ALLE Tests durch sind: .cast -> agg -> auf 1024 px skalieren -> .gif
+Phase 2  GIFs       erst wenn ALLE Tests durch sind: .cast -> agg -> auf 1920 px skalieren -> .gif
 Phase 3  Berichte   pnpm report: ein .md pro Aufzeichnung + summary.md über alle Modelle
 ```
 
@@ -64,7 +67,7 @@ Dateinamen sind `<anbieter>_<modell>` (`:` und `/` im Modellnamen werden zu `_`)
 | `<anbieter>_<modell>.cast` | Aufzeichnung (`asciinema play <datei>`). Der Pull selbst wird nicht aufgezeichnet |
 | `<anbieter>_<modell>.json` | Strukturierte Ergebnisse des Laufs (Quelle für die Berichte, kein Key darin) |
 | `<anbieter>_<modell>.md` | **Bericht pro Aufzeichnung**: Anbieter, Zeitpunkt (Europe/Berlin), Ergebnis je Variante, Urteil, Links |
-| `<anbieter>_<modell>.gif` | GIF der Aufzeichnung, 1024 px breit |
+| `<anbieter>_<modell>.gif` | GIF der Aufzeichnung, 1920 px breit (Default) |
 | `summary.md` | **Zusammenfassung nach allen Tests**: Tabelle aller Modelle mit Quote je Variante, anfälligstes/robustestes Modell, übersprungene Modelle und Fehler |
 | `manifest.tsv` | Liste der Läufe (Basisname, Anbieter, Modell, Exit-Code, Hinweis) für `pnpm report` |
 
@@ -81,13 +84,15 @@ pnpm report --dir recordings
 
 ### GIFs
 
-`agg` kennt keine Pixelbreite, deshalb wird das GIF nach `agg` mit `ffmpeg` (Palette + Lanczos) oder ersatzweise ImageMagick
-auf `--gif-width` skaliert. Fehlt `agg` oder ein Skalierwerkzeug, gibt es nur einen Hinweis und der Lauf geht normal weiter.
+`agg` kennt keine Pixelbreite. Deshalb rendert das Skript auf eine feste Terminalgröße (`--gif-cols`/`--gif-rows`, unabhängig von
+deiner Fenstergröße beim Aufnehmen, ungenutzter Platz wird abgeschnitten), wählt die Schriftgröße so, dass das Rohbild schon
+breit genug ist, und skaliert danach mit `ffmpeg` (Palette + Lanczos) oder ersatzweise ImageMagick exakt auf `--gif-width`. So bleibt die Schrift scharf.
+Ist die Ausgabe länger als `--gif-rows`, scrollen die oberen Zeilen aus dem Bild; das letzte Bild zeigt dann das Ende mit der Auswertung. Mehr Zeilen (`--gif-rows 40`) zeigen mehr, machen die Schrift bei Vollbild aber kleiner. Fehlt `agg` oder ein Skalierwerkzeug, gibt es nur einen Hinweis und der Lauf geht normal weiter.
 Pausen werden über `--idle SEK` gekürzt, Tippen und Ausgabe bleiben flüssig. Von Hand für eine bestehende Aufzeichnung:
 
 ```bash
-agg --idle-time-limit 1 --fps-cap 15 recordings/ollama_llama3.2_1b.cast /tmp/raw.gif
-ffmpeg -i /tmp/raw.gif -vf "scale=1024:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" recordings/ollama_llama3.2_1b.gif
+agg --cols 120 --rows 30 --font-size 27 --idle-time-limit 1 --last-frame-duration 5 --fps-cap 15 recordings/ollama_llama3.2_1b.cast /tmp/raw.gif
+ffmpeg -i /tmp/raw.gif -vf "scale=1920:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" recordings/ollama_llama3.2_1b.gif
 ```
 
 Entstand eine Aufzeichnung ohne echtes Terminal (CI, Container), steht im Cast-Header `width`/`height` auf `0`, und `agg`

@@ -99,7 +99,7 @@ Ergebnis (Angriffserfolg = INJIZIERT + TEILWEISE)
 ## Recordings
 
 - **Beispiel-Recording (Mock-Lauf):** [`demo-mock.gif`](demo-mock.gif)
-- **Multi-Modell-Läufe:** [`scripts/run-models.sh`](scripts/run-models.sh) testet nacheinander Ollama-Modelle (lokal) **und** OpenAI-Modelle (Cloud) und nimmt pro Modell eine [asciinema](https://docs.asciinema.org/manual/cli/installation/)-Aufzeichnung auf. Nach allen Tests entstehen GIFs (1024 px breit), ein Markdown-Bericht pro Aufzeichnung und eine `summary.md`. Anleitung und Optionen: [`scripts/README.md`](scripts/README.md).
+- **Multi-Modell-Läufe:** [`scripts/run-models.sh`](scripts/run-models.sh) testet nacheinander Ollama-Modelle (lokal) **und** OpenAI-Modelle (Cloud) und nimmt pro Modell eine [asciinema](https://docs.asciinema.org/manual/cli/installation/)-Aufzeichnung auf. Nach allen Tests entstehen GIFs (Full HD, 1920 px breit), ein Markdown-Bericht pro Aufzeichnung und eine `summary.md`. Anleitung und Optionen: [`scripts/README.md`](scripts/README.md).
 
 ```bash
 scripts/run-models.sh --mock --runs 2                 # Trockenlauf, beide Provider, ohne Modelle/Key
@@ -118,6 +118,7 @@ Die selbst erzeugten Dateien landen in `recordings/` (`<anbieter>_<modell>.cast|
 - `scripts/`: Multi-Modell-Lauf mit Aufzeichnung
 - `docs/DEMO.md`: Vorführ-Anleitung und Gegenmaßnahmen
 - `src/ticket.ts`: Dummy-Projekt (der "Ticket-Sorter") als Testobjekt
+- `fixtures/README.md`: neutrale Staffage-README, die dem Modell als Kontext dient (enthält nie den Marker, sonst wäre schon die Kontrolle kontaminiert)
 
 ## Sicherheitshinweis
 

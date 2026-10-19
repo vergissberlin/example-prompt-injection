@@ -2,7 +2,7 @@
 # Multi-Modell-Lauf für die Prompt-Injection-Demo (AI Café #008).
 #
 # Phase 1 (Tests):    pro Modell pullen (nur Ollama) -> Test unter asciinema aufzeichnen -> Modell wieder löschen.
-# Phase 2 (GIFs):     erst nach ALLEN Tests: .cast -> GIF in fester Breite (Default 1024 px).
+# Phase 2 (GIFs):     erst nach ALLEN Tests: .cast -> GIF in fester Terminalgröße und Breite (Default 1920 px).
 # Phase 3 (Berichte): ein Markdown-Bericht pro Aufzeichnung plus summary.md über alle Modelle.
 # Läuft strikt sequenziell, damit nie mehr als ein (selbst geladenes) Modell auf der Platte liegt.
 # Bereits vorher installierte Modelle werden nie gelöscht.
@@ -20,12 +20,16 @@ KEEP=0
 MOCK=0
 GIF=1
 IDLE=1
-GIF_WIDTH=1024
+GIF_WIDTH=1920
+GIF_COLS=120
+GIF_ROWS=30
+HOLD=5
 
 usage() {
   cat <<USAGE
 Nutzung: scripts/run-models.sh [--provider ollama|openai|all] [--models "a:1b,b:2b"] [--openai-models "gpt-5,..."]
-                               [--runs 10] [--host URL] [--out DIR] [--keep] [--mock] [--no-gif] [--idle SEK] [--gif-width PX]
+                               [--runs 10] [--host URL] [--out DIR] [--keep] [--mock] [--no-gif] [--idle SEK]
+                               [--gif-width PX] [--gif-cols N] [--gif-rows N] [--hold SEK]
 
   --provider      ollama (lokal), openai (Cloud) oder all (Default: beide nacheinander).
                   Bei all wird ein nicht verfügbarer Provider (kein Ollama, kein OPENAI_API_KEY) übersprungen.
@@ -38,7 +42,10 @@ Nutzung: scripts/run-models.sh [--provider ollama|openai|all] [--models "a:1b,b:
   --mock          Trockenlauf: Fake-Modell, kein pull/rm, weder Ollama noch Key nötig
   --no-gif        Keine GIFs erzeugen (Default: GIF pro Aufzeichnung nach allen Tests, wenn agg installiert ist)
   --idle          Pausen im GIF auf max. SEK Sekunden kürzen (Default: $IDLE)
-  --gif-width     Breite der GIFs in Pixeln (Default: $GIF_WIDTH)
+  --gif-width     Breite der GIFs in Pixeln (Default: $GIF_WIDTH, Full HD für Vollbild-Präsentationen)
+  --gif-cols      Terminalbreite im GIF in Spalten, schneidet ungenutzten Platz ab (Default: $GIF_COLS)
+  --gif-rows      Terminalhöhe im GIF in Zeilen, 120x30 passt grob zu 16:9 (Default: $GIF_ROWS)
+  --hold          Letztes Bild im GIF so lange halten, bevor es von vorn startet (Default: $HOLD s)
 
 Der OpenAI-Key kommt nur aus der Umgebungsvariable OPENAI_API_KEY (nie als Argument, sonst in ps und .cast sichtbar).
 USAGE
@@ -57,6 +64,9 @@ while [[ $# -gt 0 ]]; do
     --no-gif) GIF=0; shift ;;
     --idle) IDLE="${2:?--idle braucht einen Wert}"; shift 2 ;;
     --gif-width) GIF_WIDTH="${2:?--gif-width braucht einen Wert}"; shift 2 ;;
+    --gif-cols) GIF_COLS="${2:?--gif-cols braucht einen Wert}"; shift 2 ;;
+    --gif-rows) GIF_ROWS="${2:?--gif-rows braucht einen Wert}"; shift 2 ;;
+    --hold) HOLD="${2:?--hold braucht einen Wert}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unbekannte Option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -67,6 +77,9 @@ done
 [[ "$IDLE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--idle muss eine Zahl (Sekunden) sein." >&2; exit 2; }
 [[ "$RUNS" =~ ^[1-9][0-9]*$ ]] || { echo "--runs muss eine positive Zahl sein." >&2; exit 2; }
 [[ "$GIF_WIDTH" =~ ^[1-9][0-9]*$ ]] || { echo "--gif-width muss eine positive Zahl (Pixel) sein." >&2; exit 2; }
+[[ "$GIF_COLS" =~ ^[1-9][0-9]*$ ]] || { echo "--gif-cols muss eine positive Zahl sein." >&2; exit 2; }
+[[ "$GIF_ROWS" =~ ^[1-9][0-9]*$ ]] || { echo "--gif-rows muss eine positive Zahl sein." >&2; exit 2; }
+[[ "$HOLD" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "--hold muss eine Zahl (Sekunden) sein." >&2; exit 2; }
 
 # Immer relativ zum Projektordner arbeiten, egal von wo das Skript gestartet wird.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -125,15 +138,20 @@ if [[ $GIF -eq 1 ]]; then
   fi
 fi
 
-# Pausen über --idle-time-limit kappen, dann exakt auf GIF_WIDTH skalieren (agg kennt keine Pixelbreite).
+# agg kennt keine Pixelbreite. Deshalb: feste Terminalgröße (--cols/--rows, schneidet ungenutzten Platz des
+# Aufnahmefensters ab), Schriftgröße so wählen, dass das Rohbild schon mindestens GIF_WIDTH breit ist
+# (agg: Breite ~ 0,612 * Schriftgröße * Spalten), und erst dann exakt skalieren. Das bleibt scharf.
+# Pausen werden über --idle-time-limit gekappt, das letzte Bild bleibt --hold Sekunden stehen.
 # Ohne echtes Terminal steht im Cast-Header Breite/Höhe 0, das agg ablehnt: dann Defaults setzen.
 make_gif() {
-  local cast="$1" gif="${1%.cast}.gif" raw
+  local cast="$1" gif="${1%.cast}.gif" raw font
+  font=$(( (GIF_WIDTH * 1000 + GIF_COLS * 612 - 1) / (GIF_COLS * 612) ))
   raw="$(mktemp "${gif%.gif}.XXXXXX.gif")"
   # Portabel für GNU- und BSD-sed (macOS): keine { }-Gruppe, kein -i.
   sed -E -e '1s/"(width|cols)": *0([,}])/"\1": 100\2/' -e '1s/"(height|rows)": *0([,}])/"\1": 30\2/' "$cast" >"$cast.tmp" \
     && mv "$cast.tmp" "$cast" || rm -f "$cast.tmp"
-  if agg --idle-time-limit "$IDLE" --fps-cap 15 "$cast" "$raw" >/dev/null 2>&1 && resize_gif "$raw" "$gif"; then
+  if agg --cols "$GIF_COLS" --rows "$GIF_ROWS" --font-size "$font" --idle-time-limit "$IDLE" \
+        --last-frame-duration "$HOLD" --fps-cap 15 "$cast" "$raw" >/dev/null 2>&1 && resize_gif "$raw" "$gif"; then
     echo "  GIF: $gif (${GIF_WIDTH}px)"
   else
     rm -f "$gif"
