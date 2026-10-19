@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseManifest, renderModelReport, renderSummary, verdictKind, type ReportEntry, type RunData } from "./report";
-import type { VariantSummary } from "./runner";
+import { parseManifest, renderModelReport, renderSummary, verdictKind, type ReportEntry, type RunData } from "../../src/injection/report";
+import type { VariantSummary } from "../../src/injection/runner";
 
 const summary = (variant: "C" | "A" | "B", successes: number, total = 10): VariantSummary => ({
   variant,

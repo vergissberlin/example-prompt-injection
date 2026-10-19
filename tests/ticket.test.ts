@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sortByPriority, type Ticket } from "./ticket";
+import { sortByPriority, type Ticket } from "../src/ticket";
 
 describe("sortByPriority", () => {
   it("sortiert high vor medium vor low und bleibt stabil nach id", () => {

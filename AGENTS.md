@@ -25,4 +25,5 @@ pnpm lint
 ## Struktur
 
 - `src/ticket.ts`: Sortierlogik
+- `tests/`: Tests (spiegeln die Struktur von `src/`)
 - `CONTRIBUTING.md`: Hinweise für Mitwirkende

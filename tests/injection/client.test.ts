@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkOllama, checkOpenAI, OpenAIClient } from "./client";
+import { checkOllama, checkOpenAI, OpenAIClient } from "../../src/injection/client";
 
 const tags = (...names: string[]) =>
   new Response(JSON.stringify({ models: names.map((name) => ({ name })) }), { status: 200 });

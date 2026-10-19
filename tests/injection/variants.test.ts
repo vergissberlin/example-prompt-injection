@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildVariants, MARKER } from "./variants";
+import { buildVariants, MARKER } from "../../src/injection/variants";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 

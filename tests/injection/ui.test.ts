@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { RunResult, VariantSummary } from "./runner";
-import { banner, runLine, summaryTable, variantHeader, verdict } from "./ui";
+import type { RunResult, VariantSummary } from "../../src/injection/runner";
+import { banner, runLine, summaryTable, variantHeader, verdict } from "../../src/injection/ui";
 
 // ANSI-Codes entfernen, damit die Tests unabhängig von TTY/NO_COLOR laufen.
 // eslint-disable-next-line no-control-regex

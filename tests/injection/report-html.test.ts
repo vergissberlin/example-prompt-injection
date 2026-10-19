@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { esc, renderHtmlReport } from "./report-html";
-import type { ReportEntry, RunData } from "./report";
-import type { VariantSummary } from "./runner";
+import { esc, renderHtmlReport } from "../../src/injection/report-html";
+import type { ReportEntry, RunData } from "../../src/injection/report";
+import type { VariantSummary } from "../../src/injection/runner";
 
 const summary = (variant: "C" | "A" | "B", successes: number, total = 10): VariantSummary => ({
   variant,
