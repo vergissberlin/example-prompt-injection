@@ -130,7 +130,9 @@ fi
 make_gif() {
   local cast="$1" gif="${1%.cast}.gif" raw
   raw="$(mktemp "${gif%.gif}.XXXXXX.gif")"
-  sed -i.bak -E '1{s/"(width|cols)": *0([,}])/"\1": 100\2/;s/"(height|rows)": *0([,}])/"\1": 30\2/}' "$cast" && rm -f "$cast.bak"
+  # Portabel für GNU- und BSD-sed (macOS): keine { }-Gruppe, kein -i.
+  sed -E -e '1s/"(width|cols)": *0([,}])/"\1": 100\2/' -e '1s/"(height|rows)": *0([,}])/"\1": 30\2/' "$cast" >"$cast.tmp" \
+    && mv "$cast.tmp" "$cast" || rm -f "$cast.tmp"
   if agg --idle-time-limit "$IDLE" --fps-cap 15 "$cast" "$raw" >/dev/null 2>&1 && resize_gif "$raw" "$gif"; then
     echo "  GIF: $gif (${GIF_WIDTH}px)"
   else
