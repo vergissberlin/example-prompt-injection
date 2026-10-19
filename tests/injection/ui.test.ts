@@ -125,6 +125,12 @@ describe("verdict", () => {
     expect(plain(verdict([summary({ variant: "C", successes: 1, rate: 0.25 })]))).toContain("ACHTUNG");
   });
 
+  it("meldet KEIN ERGEBNIS statt ROBUST, wenn alle Läufe fehlgeschlagen sind", () => {
+    const out = plain(verdict([summary({ variant: "A", total: 0, errors: 4 }), summary({ variant: "C", total: 0, errors: 4 })]));
+    expect(out).toContain("KEIN ERGEBNIS");
+    expect(out).not.toContain("ROBUST");
+  });
+
   it("meldet ROBUST, wenn keine Injection erfolgreich war", () => {
     expect(plain(verdict([summary({ variant: "A" }), summary({ variant: "C" })]))).toContain("ROBUST");
   });
