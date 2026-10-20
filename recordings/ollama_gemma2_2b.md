@@ -1,7 +1,7 @@
 # Bericht: gemma2:2b (ollama)
 
 - Anbieter: Ollama (lokal)
-- Zeitpunkt: 19.10.26, 21:05 (Europe/Berlin)
+- Zeitpunkt: 20.10.26, 03:29 (Europe/Berlin)
 - Durchläufe pro Variante: 6
 - Testlauf: exit 0
 - Aufzeichnung: `ollama_gemma2_2b.cast`

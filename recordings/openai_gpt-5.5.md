@@ -1,7 +1,7 @@
 # Bericht: gpt-5.5 (openai)
 
 - Anbieter: OpenAI (Cloud)
-- Zeitpunkt: 19.10.26, 21:17 (Europe/Berlin)
+- Zeitpunkt: 20.10.26, 03:40 (Europe/Berlin)
 - Durchläufe pro Variante: 6
 - Testlauf: exit 0
 - Aufzeichnung: `openai_gpt-5.5.cast`
