@@ -8,6 +8,8 @@ export interface RunResult {
   outcome: Outcome;
   ms: number;
   preview: string;
+  /** Vollständige Antwort des Modells, damit sich die Bewertung nachträglich prüfen lässt. Bei Fehlern leer. */
+  response?: string;
   error?: string;
 }
 
@@ -59,6 +61,7 @@ export async function runExperiment(
           outcome: evaluate(response),
           ms: Date.now() - start,
           preview: response.trim().replace(/\s+/g, " ").slice(0, 70),
+          response,
         };
       } catch (e) {
         result = {

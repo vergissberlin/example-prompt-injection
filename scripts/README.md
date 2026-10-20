@@ -65,7 +65,7 @@ Dateinamen sind `<anbieter>_<modell>` (`:` und `/` im Modellnamen werden zu `_`)
 | Datei | Inhalt |
 |---|---|
 | `<anbieter>_<modell>.cast` | Aufzeichnung (`asciinema play <datei>`). Der Pull selbst wird nicht aufgezeichnet |
-| `<anbieter>_<modell>.json` | Strukturierte Ergebnisse des Laufs (Quelle für die Berichte, kein Key darin) |
+| `<anbieter>_<modell>.json` | Strukturierte Ergebnisse des Laufs inkl. vollständiger Modellantworten (`response`), Quelle für die Berichte, kein Key darin |
 | `<anbieter>_<modell>.md` | **Bericht pro Aufzeichnung**: Anbieter, Zeitpunkt (Europe/Berlin), Ergebnis je Variante, Urteil, Links |
 | `<anbieter>_<modell>.gif` | GIF der Aufzeichnung, 1920 px breit (Default) |
 | `summary.md` | **Zusammenfassung nach allen Tests**: Tabelle aller Modelle mit Quote je Variante, anfälligstes/robustestes Modell, übersprungene Modelle und Fehler |

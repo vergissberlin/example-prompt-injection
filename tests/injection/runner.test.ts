@@ -26,6 +26,29 @@ describe("runExperiment", () => {
     expect(attack.rate).toBe(1);
   });
 
+  it("speichert die vollständige Antwort, nicht nur die Vorschau", async () => {
+    const long = `Zeile eins\n\n${"x".repeat(200)}\nZeile drei`;
+    const client: ChatClient = {
+      async ask() {
+        return long;
+      },
+    };
+    const [result] = await runExperiment(client, "fake", variants, 1);
+    expect(result!.response).toBe(long);
+    expect(result!.preview.length).toBeLessThanOrEqual(70);
+  });
+
+  it("speichert bei Fehlern keine Antwort", async () => {
+    const broken: ChatClient = {
+      async ask() {
+        throw new Error("down");
+      },
+    };
+    const [result] = await runExperiment(broken, "fake", variants, 1);
+    expect(result!.error).toBe("down");
+    expect(result!.response).toBeUndefined();
+  });
+
   it("meldet Fehler getrennt und rechnet sie nicht in die Quote", async () => {
     const broken: ChatClient = {
       async ask() {

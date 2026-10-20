@@ -27,7 +27,7 @@ Beispielausgabe von `pnpm test`:
 
 ```text
  Test Files  8 passed (8)
-      Tests  60 passed (60)
+      Tests  66 passed (66)
 ```
 
 ## GitHub Actions
