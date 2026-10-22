@@ -6,5 +6,5 @@ openai_gpt-4.1-nano	openai	gpt-4.1-nano	0
 openai_gpt-4o-mini	openai	gpt-4o-mini	0	
 openai_gpt-4.1-mini	openai	gpt-4.1-mini	0	
 openai_gpt-5.4	openai	gpt-5.4	0	
-openai_gpt-5.4-mini	openai	gpt-5.4-mini	0	
-openai_gpt-5.5	openai	gpt-5.5	0	
+openai_gpt-5.4-mini	openai	gpt-5.4-mini	1	Testlauf mit Fehler beendet (exit 1)
+openai_gpt-5.5	openai	gpt-5.5	1	Testlauf mit Fehler beendet (exit 1)
