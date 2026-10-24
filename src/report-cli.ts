@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { renderHtmlReport } from "./injection/report-html";
-import { parseManifest, renderModelReport, renderSummary, type ReportEntry, type RunData } from "./injection/report";
+import { parseManifest, renderModelReport, renderSummary, sortEntries, type ReportEntry, type RunData } from "./injection/report";
 
 /** Liest `<base>.json`; fehlt die Datei oder ist sie kaputt, gibt es schlicht kein Ergebnis. */
 async function loadData(path: string): Promise<RunData | undefined> {
@@ -22,7 +22,7 @@ async function main() {
     process.exit(1);
   }
 
-  const rows = parseManifest(await readFile(manifest, "utf8"));
+  const rows = sortEntries(parseManifest(await readFile(manifest, "utf8")));
   const entries: ReportEntry[] = [];
   for (const row of rows) {
     entries.push({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseManifest, renderModelReport, renderSummary, verdictKind, type ReportEntry, type RunData } from "../../src/injection/report";
+import { parseManifest, renderModelReport, renderSummary, sortEntries, verdictKind, type ReportEntry, type RunData } from "../../src/injection/report";
 import type { VariantSummary } from "../../src/injection/runner";
 
 const summary = (variant: "C" | "A" | "B", successes: number, total = 10): VariantSummary => ({
@@ -99,6 +99,30 @@ describe("parseManifest", () => {
     expect(rows).toEqual([
       { base: "ollama_a", provider: "ollama", model: "a:1b", exit: 0, note: "" },
       { base: "openai_g", provider: "openai", model: "gpt-5", exit: null, note: "übersprungen" },
+    ]);
+  });
+});
+
+describe("sortEntries", () => {
+  it("sortiert erst Ollama, dann OpenAI, je vom kleinsten zum fähigsten Modell", () => {
+    const m = (provider: string, model: string) => ({ provider, model });
+    const sorted = sortEntries([
+      m("openai", "gpt-5.5"),
+      m("ollama", "mixtral:8x7b"),
+      m("openai", "gpt-4o-mini"),
+      m("ollama", "qwen2.5:0.5b"),
+      m("openai", "gpt-5"),
+      m("ollama", "unbekannt:1b"),
+      m("openai", "gpt-5.4-mini"),
+    ]);
+    expect(sorted.map((e) => e.model)).toEqual([
+      "qwen2.5:0.5b",
+      "mixtral:8x7b",
+      "unbekannt:1b",
+      "gpt-4o-mini",
+      "gpt-5.4-mini",
+      "gpt-5",
+      "gpt-5.5",
     ]);
   });
 });

@@ -175,3 +175,24 @@ export function parseManifest(text: string): Omit<ReportEntry, "data" | "cast" |
       note: note ?? "",
     }));
 }
+
+/** Fähigkeitsreihenfolge je Anbieter, vom kleinsten zum fähigsten Modell. Unbekannte Modelle kommen ans Ende ihres Anbieters. */
+const MODEL_ORDER: Record<string, string[]> = {
+  ollama: ["qwen2.5:0.5b", "llama3.2:1b", "gemma2:2b", "qwen3:8b", "mixtral:8x7b"],
+  openai: ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-mini", "gpt-5.4-mini", "gpt-5", "gpt-5.4", "gpt-5.5"],
+};
+const PROVIDER_ORDER = ["ollama", "openai"];
+
+/** Sortiert für Bericht und Zusammenfassung: erst Ollama, dann OpenAI, je vom kleinsten zum fähigsten Modell. */
+export function sortEntries<T extends { provider: string; model: string }>(entries: T[]): T[] {
+  const rank = (list: string[], key: string) => {
+    const i = list.indexOf(key);
+    return i < 0 ? list.length : i;
+  };
+  return [...entries].sort(
+    (a, b) =>
+      rank(PROVIDER_ORDER, a.provider) - rank(PROVIDER_ORDER, b.provider) ||
+      rank(MODEL_ORDER[a.provider] ?? [], a.model) - rank(MODEL_ORDER[b.provider] ?? [], b.model) ||
+      a.model.localeCompare(b.model),
+  );
+}
