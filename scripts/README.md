@@ -101,23 +101,21 @@ meldet "invalid terminal size". Das Skript setzt dann automatisch `100` und `30`
 
 ## Default-Modelle
 
-**Ollama** (je < 8 GB):
+**Ollama** (5 Modelle, 0,4 bis 26 GB):
 
 | Modell | Größe (ca.) |
 |---|---|
 | `qwen2.5:0.5b` | 0,4 GB |
 | `llama3.2:1b` | 1,3 GB |
 | `gemma2:2b` | 1,6 GB |
-| `llama3.2:3b` | 2,0 GB |
-| `phi3:mini` | 2,2 GB |
-| `mistral:7b` | 4,1 GB |
-| `llama3.1:8b` | 4,9 GB |
+| `qwen3:8b` | 5,2 GB |
+| `mixtral:8x7b` | 26 GB |
 
 Die Größen sind Schätzwerte (quantisierte Standard-Tags) und nicht gegen die Registry geprüft; vor dem Lauf auf
-[ollama.com/library](https://ollama.com/library) nachsehen. Die 7B/8B-Modelle brauchen grob 6 bis 8 GB RAM.
-Insgesamt werden etwa 17 GB geladen, weil jedes Modell neu gezogen wird.
+[ollama.com/library](https://ollama.com/library) nachsehen. `qwen3:8b` braucht grob 6 bis 8 GB RAM, `mixtral:8x7b` grob 32 GB RAM (oder eine passende GPU), sonst drohen Timeouts.
+Insgesamt werden etwa 35 GB geladen, weil jedes Modell neu gezogen wird. Auf der Platte liegt aber immer nur ein selbst geladenes Modell, der Spitzenbedarf ist `mixtral:8x7b` mit ~26 GB.
 
-**OpenAI**: ` gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5, gpt-5.4, gpt-5.4-mini, gpt-5.5`. Bei 10 Durchläufen sind das 240 Requests.
+**OpenAI**: `gpt-4o-mini, gpt-4.1-mini, gpt-5.4, gpt-5.4-mini, gpt-5.5`. Bei 10 Durchläufen sind das 150 Requests.
 Die Inhalte gehen an OpenAI (nur harmlose Demo-Dateien).
 
 ## In GitHub Actions
@@ -127,14 +125,14 @@ Der Workflow [`injection.yml`](../.github/workflows/injection.yml) startet das S
 | Eingabe | Bedeutung | Default |
 |---|---|---|
 | `provider` | `ollama`, `openai` oder `all` | `ollama` |
-| `models` | Ollama-Modelle, komma-getrennt (leer = Skript-Default) | `qwen2.5:0.5b,llama3.2:1b,gemma2:2b` |
+| `models` | Ollama-Modelle, komma-getrennt (leer = Skript-Default) | `qwen2.5:0.5b,llama3.2:1b,gemma2:2b,qwen3:8b,mixtral:8x7b` |
 | `openai_models` | OpenAI-Modelle, komma-getrennt (leer = Skript-Default) | `gpt-4o-mini,gpt-4.1-mini,gpt-5.4,gpt-5.4-mini,gpt-5.5` |
 | `runs` | Durchläufe pro Variante und Modell | `5` |
 | `mock` | Trockenlauf mit Fake-Modell, wird **nicht** gepusht | aus |
 
 - **GitHub Pages:** Nach einem echten Lauf (nicht `mock`) veröffentlicht der Job `deploy-pages` `recordings/` mit `report.html` als Startseite. Einmalig Settings > Pages > Source = **GitHub Actions** setzen. Lokal erzeugte Recordings: `pnpm report --dir recordings`, committen und nach `main` pushen. Der Workflow `pages.yml` deployt dann bei Änderungen unter `recordings/` (oder manuell per *Run workflow*).
 - **OpenAI:** braucht das Repo-Secret `OPENAI_API_KEY` (Settings > Secrets and variables > Actions). Es wird nur als Env an den Test-Step gereicht. Die Demo-Inhalte gehen an OpenAI, und es entstehen Kosten. Am besten einen eigenen Key mit Ausgabenlimit nutzen. Bei `provider=all` ohne Secret wird OpenAI übersprungen.
-- **Runner:** Standard-Runner haben keine GPU. In öffentlichen Repos sind es 4 vCPU, 16 GB RAM und 14 GB Platte (laut GitHub-Doku), in privaten weniger. Deshalb nur kleine Ollama-Modelle als Default; 7B/8B laufen auf CPU sehr langsam.
+- **Runner:** Standard-Runner haben keine GPU. In öffentlichen Repos sind es 4 vCPU, 16 GB RAM und 14 GB Platte (laut GitHub-Doku), in privaten weniger. Der Default enthält trotzdem `qwen3:8b` und `mixtral:8x7b`: `mixtral:8x7b` (~26 GB) passt nicht auf die Platte und 8B-Modelle laufen auf CPU sehr langsam. Für Läufe im Workflow `models` deshalb auf kleine Modelle einschränken (z. B. `qwen2.5:0.5b,llama3.2:1b,gemma2:2b`), die großen lokal laufen lassen.
 - **Terminal:** Der Runner hat kein TTY, der Workflow startet das Skript deshalb in einem Pseudo-Terminal (`script`) mit 120x30 Zeichen.
 - **Push:** Der Commit geht direkt nach `main`. Verbietet eine Branch Protection Bot-Pushes, schlägt der Schritt fehl. Die Recordings liegen dann als Artifact `recordings` am Lauf.
 - **Versionen:** `ollama` und `agg` sind im Workflow fest gepinnt (`agg` mit SHA256), Renovate pflegt nur die Actions.

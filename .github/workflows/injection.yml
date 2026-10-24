@@ -10,9 +10,9 @@ on:
         options: [ollama, openai, all]
         default: ollama
       models:
-        description: "Ollama-Modelle, komma-getrennt (leer = Script-Default). Auf dem CPU-Runner nur kleine Modelle."
+        description: "Ollama-Modelle, komma-getrennt (leer = Script-Default). Achtung: Standard-Runner haben 14 GB Platte, mixtral:8x7b (~26 GB) passt dort nicht."
         type: string
-        default: "qwen2.5:0.5b,llama3.2:1b,gemma2:2b"
+        default: "qwen2.5:0.5b,llama3.2:1b,gemma2:2b,qwen3:8b,mixtral:8x7b"
       openai_models:
         description: "OpenAI-Modelle, komma-getrennt (leer = Script-Default)"
         type: string

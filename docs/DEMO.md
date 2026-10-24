@@ -49,19 +49,19 @@ Der Mock ist nur ein Fake mit festen Wahrscheinlichkeiten und sagt nichts über 
 
 Mit `--provider openai` läuft derselbe Test gegen OpenAI. Der Key kommt **nur** aus der Env-Variable `OPENAI_API_KEY` (nie als Argument, nie committen; am besten ein eigener Projekt-Key mit Budget-Limit). Optional `OPENAI_BASE_URL` für Proxys/Azure-kompatible Endpunkte.
 
-Vorgeschlagene Modelle, von anfällig bis robust: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5-mini`, `gpt-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.5`. Die Namen werden vorab gegen `/v1/models` geprüft; bei Abweichungen schlägt die Fehlermeldung verfügbare `gpt-*`-Modelle vor.
+Vorgeschlagene Modelle, von anfällig bis robust: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.5`. Die Namen werden vorab gegen `/v1/models` geprüft; bei Abweichungen schlägt die Fehlermeldung verfügbare `gpt-*`-Modelle vor.
 
 - **Datenschutz:** Anders als bei Ollama verlassen die Inhalte den Rechner. Hier sind es nur die harmlosen Demo-Dateien, trotzdem keine echten Projekt- oder Kundendaten verwenden.
 - **Vergleichbarkeit:** Es wird kein `temperature` gesendet (GPT-5-Modelle erlauben nur den Default 1.0). Ollama läuft mit 0.8, die Werte sind also nur grob vergleichbar.
-- **Kosten:** Bei 3 Varianten × 10 Durchläufen pro Modell wenige Cent, am meisten bei `gpt-5`.
+- **Kosten:** Bei 3 Varianten × 10 Durchläufen pro Modell wenige Cent, am meisten bei den größeren GPT-5.x-Modellen.
 
 ## Multi-Modell-Lauf mit Aufzeichnung (wenig Speicherplatz)
 
 `scripts/run-models.sh` testet mehrere Ollama-Modelle nacheinander: Modell pullen, Test mit [asciinema](https://docs.asciinema.org/manual/cli/installation/) aufzeichnen, Modell sofort wieder löschen. Es liegt nie mehr als ein selbst geladenes Modell auf der Platte.
 
 ```bash
-scripts/run-models.sh                                   # Default: 7 Modelle von 0.5B bis 8B (je < 8 GB)
-scripts/run-models.sh --models "llama3.2:3b,phi3:mini" --runs 5
+scripts/run-models.sh                                   # Default: 5 Ollama-Modelle von 0.5B bis 8x7B (größtes ~26 GB)
+scripts/run-models.sh --models "llama3.2:1b,gemma2:2b" --runs 5
 scripts/run-models.sh --mock --runs 2 --models fake     # Trockenlauf ohne Ollama
 scripts/run-models.sh --provider openai --runs 5        # OpenAI-Modelle, kein pull/rm
 asciinema play recordings/llama3.2_1b.cast              # Aufzeichnung abspielen
