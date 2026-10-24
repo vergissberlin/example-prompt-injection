@@ -1,6 +1,6 @@
 # Zusammenfassung: Prompt-Injection-Test
 
-- Zeitpunkt: 24.10.26, 06:00 (Europe/Berlin)
+- Zeitpunkt: 24.10.26, 10:11 (Europe/Berlin)
 - Modelle: 10 (9 mit Ergebnis)
 - Durchläufe pro Variante: 50
 
