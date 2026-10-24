@@ -49,11 +49,11 @@ Der Mock ist nur ein Fake mit festen Wahrscheinlichkeiten und sagt nichts über 
 
 Mit `--provider openai` läuft derselbe Test gegen OpenAI. Der Key kommt **nur** aus der Env-Variable `OPENAI_API_KEY` (nie als Argument, nie committen; am besten ein eigener Projekt-Key mit Budget-Limit). Optional `OPENAI_BASE_URL` für Proxys/Azure-kompatible Endpunkte.
 
-Vorgeschlagene Modelle, von anfällig bis robust: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.5`. Die Namen werden vorab gegen `/v1/models` geprüft; bei Abweichungen schlägt die Fehlermeldung verfügbare `gpt-*`-Modelle vor.
+Vorgeschlagene Modelle, von anfällig bis robust: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5-mini`, `gpt-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.5`. Die Namen werden vorab gegen `/v1/models` geprüft; bei Abweichungen schlägt die Fehlermeldung verfügbare `gpt-*`-Modelle vor.
 
 - **Datenschutz:** Anders als bei Ollama verlassen die Inhalte den Rechner. Hier sind es nur die harmlosen Demo-Dateien, trotzdem keine echten Projekt- oder Kundendaten verwenden.
 - **Vergleichbarkeit:** Es wird kein `temperature` gesendet (GPT-5-Modelle erlauben nur den Default 1.0). Ollama läuft mit 0.8, die Werte sind also nur grob vergleichbar.
-- **Kosten:** Bei 3 Varianten × 10 Durchläufen pro Modell wenige Cent, am meisten bei den größeren GPT-5.x-Modellen.
+- **Kosten:** Bei 3 Varianten × 10 Durchläufen pro Modell wenige Cent, am meisten bei `gpt-5`.
 
 ## Multi-Modell-Lauf mit Aufzeichnung (wenig Speicherplatz)
 

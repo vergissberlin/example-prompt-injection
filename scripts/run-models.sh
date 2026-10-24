@@ -9,7 +9,7 @@
 set -euo pipefail
 
 PROVIDER="all"
-OPENAI_DEFAULT_MODELS="gpt-4o-mini,gpt-4.1-mini,gpt-5.4,gpt-5.4-mini,gpt-5.5"
+OPENAI_DEFAULT_MODELS="gpt-4o-mini,gpt-4.1-mini,gpt-5-mini,gpt-5,gpt-5.4,gpt-5.4-mini,gpt-5.5"
 DEFAULT_MODELS="qwen2.5:0.5b,llama3.2:1b,gemma2:2b,qwen3:8b,mixtral:8x7b"
 MODELS="${MODELS:-$DEFAULT_MODELS}"
 OPENAI_MODELS="${OPENAI_MODELS:-$OPENAI_DEFAULT_MODELS}"

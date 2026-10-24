@@ -115,7 +115,7 @@ Die Größen sind Schätzwerte (quantisierte Standard-Tags) und nicht gegen die 
 [ollama.com/library](https://ollama.com/library) nachsehen. `qwen3:8b` braucht grob 6 bis 8 GB RAM, `mixtral:8x7b` grob 32 GB RAM (oder eine passende GPU), sonst drohen Timeouts.
 Insgesamt werden etwa 35 GB geladen, weil jedes Modell neu gezogen wird. Auf der Platte liegt aber immer nur ein selbst geladenes Modell, der Spitzenbedarf ist `mixtral:8x7b` mit ~26 GB.
 
-**OpenAI**: `gpt-4o-mini, gpt-4.1-mini, gpt-5.4, gpt-5.4-mini, gpt-5.5`. Bei 10 Durchläufen sind das 150 Requests.
+**OpenAI**: `gpt-4o-mini, gpt-4.1-mini, gpt-5-mini, gpt-5, gpt-5.4, gpt-5.4-mini, gpt-5.5`. Bei 10 Durchläufen sind das 210 Requests.
 Die Inhalte gehen an OpenAI (nur harmlose Demo-Dateien).
 
 ## In GitHub Actions
