@@ -1,0 +1,56 @@
+name: Pages
+
+# Veröffentlicht lokal erzeugte Recordings, ohne den (langsamen) Injection-Test neu zu starten.
+# Der Workflow injection.yml deployt weiterhin selbst nach echten Läufen.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "recordings/**"
+  workflow_dispatch:
+
+# Standard: nichts, die Rechte stehen nur im Deploy-Job
+permissions: {}
+
+# Gleiche Gruppe wie bei jedem anderen Pages-Deployment, laufende nicht abbrechen
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Deployt nur von main (Environment github-pages erlaubt ohnehin nur main)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      # report.html wird zur Startseite, die relativen Links (.md, .cast, .gif) bleiben gültig
+      - name: Pages-Artifact bauen
+        run: |
+          [[ -f recordings/report.html ]] || { echo "::error::recordings/report.html fehlt (pnpm report --dir recordings)."; exit 1; }
+          mkdir _site
+          cp -r recordings/. _site/
+          mv _site/report.html _site/index.html
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  # Eigener Job mit minimalen Rechten: nur dieser braucht pages/id-token (OIDC für das Deployment)
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
