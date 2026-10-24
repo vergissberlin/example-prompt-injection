@@ -132,7 +132,7 @@ Der Workflow [`injection.yml`](../.github/workflows/injection.yml) startet das S
 | `runs` | Durchläufe pro Variante und Modell | `5` |
 | `mock` | Trockenlauf mit Fake-Modell, wird **nicht** gepusht | aus |
 
-- **GitHub Pages:** Nach einem echten Lauf (nicht `mock`) veröffentlicht der Job `deploy-pages` `recordings/` mit `report.html` als Startseite. Einmalig Settings > Pages > Source = **GitHub Actions** setzen.
+- **GitHub Pages:** Nach einem echten Lauf (nicht `mock`) veröffentlicht der Job `deploy-pages` `recordings/` mit `report.html` als Startseite. Einmalig Settings > Pages > Source = **GitHub Actions** setzen. Lokal erzeugte Recordings: `pnpm report --dir recordings`, committen und nach `main` pushen. Der Workflow `pages.yml` deployt dann bei Änderungen unter `recordings/` (oder manuell per *Run workflow*).
 - **OpenAI:** braucht das Repo-Secret `OPENAI_API_KEY` (Settings > Secrets and variables > Actions). Es wird nur als Env an den Test-Step gereicht. Die Demo-Inhalte gehen an OpenAI, und es entstehen Kosten. Am besten einen eigenen Key mit Ausgabenlimit nutzen. Bei `provider=all` ohne Secret wird OpenAI übersprungen.
 - **Runner:** Standard-Runner haben keine GPU. In öffentlichen Repos sind es 4 vCPU, 16 GB RAM und 14 GB Platte (laut GitHub-Doku), in privaten weniger. Deshalb nur kleine Ollama-Modelle als Default; 7B/8B laufen auf CPU sehr langsam.
 - **Terminal:** Der Runner hat kein TTY, der Workflow startet das Skript deshalb in einem Pseudo-Terminal (`script`) mit 120x30 Zeichen.
